@@ -9,7 +9,7 @@ log_file=os.path.join(current_path,Config().LOG_FILE)
 
 def setup_logger(log_file=log_file):
     os.makedirs(os.path.dirname(log_file), exist_ok=True)
-    logger = logging.getLogger('EduRAG')
+    logger = logging.getLogger('PaperRAG')
     logger.setLevel(logging.INFO)
 
     if not logger.handlers:

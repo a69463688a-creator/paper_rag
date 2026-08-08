@@ -37,5 +37,11 @@ logs/
 .DS_Store
 Thumbs.db
 
+# ========== 论文数据（运行时生成） ==========
+integrated_qa_system/rag_qa/paper_data/figures/
+integrated_qa_system/rag_qa/data/paper_data/*.pdf
+integrated_qa_system/rag_qa/classify_data/paper_queries.txt
+models/
+
 # ========== 运行时文件 ==========
 *.lock

@@ -25,7 +25,7 @@ import re
 
 from new_main import IntegratedQASystem
 
-app=FastAPI(title="智能问答系统API",description='集成MySQL和RAG的智能问答系统')
+app=FastAPI(title="论文阅读助手API",description='集成MySQL和RAG的学术论文问答系统')
 
 app.add_middleware(
     CORSMiddleware,
@@ -41,19 +41,19 @@ qa_system = IntegratedQASystem()
 GREETING_PATTERNS = [
     {
         "pattern": r"^(你好|您好|hi|hello)",  # 匹配问候语
-        "response": "你好！我是智能问答小助手，专注于为 IT 学习答疑解惑，很高兴为你服务！"
+        "response": "你好！我是论文阅读助手，专注于学术论文检索与分析，很高兴为你服务！"
     },
     {
         "pattern": r"^(你是谁|您是谁|你叫什么|你的名字|who are you)",  # 匹配身份询问
-        "response": "我是智能问答小助手，致力于提供 IT 学习相关的解答！"
+        "response": "我是论文阅读助手，致力于提供学术论文相关的解答！"
     },
     {
         "pattern": r"^(在吗|在不在|有人吗)",  # 匹配在线确认
-        "response": "我在！我是智能问答小助手，随时为你解答问题！"
+        "response": "我在！我是论文阅读助手，随时为你解答问题！"
     },
     {
         "pattern": r"^(干嘛呢|你在干嘛|做什么)",  # 匹配状态询问
-        "response": "我正在待命，随时为你解答 IT 学习相关的问题！有什么我可以帮你的？"
+        "response": "我正在待命，随时为你解答学术论文相关的问题！有什么我可以帮你的？"
     }
 ]
 

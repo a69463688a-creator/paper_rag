@@ -120,7 +120,7 @@ class OCRPDFLoader(BaseLoader):
 
 if __name__ == '__main__':
     from base.config import Config
-    pdf_loader = OCRPDFLoader(file_path=f"{Config().DATA_DIR}/ai_data/LLM基础知识.pdf")
+    pdf_loader = OCRPDFLoader(file_path=f"{Config().DATA_DIR}/paper_data/")
     doc = pdf_loader.load()
 
     print(type(doc))

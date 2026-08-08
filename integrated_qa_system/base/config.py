@@ -16,7 +16,7 @@ class Config:
         # self.MYSQL_HOST=self.config.get('mysql','host',fallback='localhost')
         # self.MYSQL_USER=self.config.get('mysql','user',fallback='root')
         # self.MYSQL_PASSWORD=self.config.get('mysql','password',fallback='123456')
-        # self.MYSQL_DATABASE=self.config.get('mysql','database',fallback='subjects_kg')
+        # self.MYSQL_DATABASE=self.config.get('mysql','database',fallback='paper_rag')
         #
         # self.REDIS_HOST=self.config.get('redis', 'host',fallback='localhost')
         # self.REDIS_PORT=self.config.get('redis', 'port',fallback=6379)
@@ -48,7 +48,7 @@ class Config:
         # MySQL 密码
         self.MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD', self.config.get('mysql', 'password', fallback='123456'))
         # MySQL 数据库名
-        self.MYSQL_DATABASE = os.getenv('MYSQL_DATABASE', self.config.get('mysql', 'database', fallback='subjects_kg'))
+        self.MYSQL_DATABASE = os.getenv('MYSQL_DATABASE', self.config.get('mysql', 'database', fallback='paper_rag'))
 
         # Redis 配置
         # Redis 主机地址
@@ -67,20 +67,21 @@ class Config:
         self.MILVUS_PORT = os.getenv('MILVUS_PORT', self.config.get('milvus', 'port', fallback='19530'))
         # Milvus 数据库名
         self.MILVUS_DATABASE_NAME = os.getenv('MILVUS_DATABASE_NAME',
-                                              self.config.get('milvus', 'database_name', fallback='itcast'))
+                                              self.config.get('milvus', 'database_name', fallback='paper_rag'))
         # Milvus 集合名
         self.MILVUS_COLLECTION_NAME = os.getenv('MILVUS_COLLECTION_NAME',
-                                                self.config.get('milvus', 'collection_name', fallback='edurag_final'))
+                                                self.config.get('milvus', 'collection_name', fallback='paper_rag'))
 
         # LLM 配置
         # LLM 模型名
         self.LLM_MODEL = self.config.get('llm', 'model', fallback='qwen-plus')
-        # DashScope API 密钥
-        self.DASHSCOPE_API_KEY = os.getenv('DASHSCOPE_API_KEY', self.config.get('llm', 'dashscope_api_key',
-                                                                                fallback='sk-ws-H.EDEXRID.QDFj.MEQCIBoF755I3PLWnZ_Vrgjix7uvKkU7KRoMW1ksPgBsH6ukAiBLnE3C3wu5LiKNyu_OedJyPE1hn1deCoDXGEWpgkmKXA'))
-        # DashScope API 地址
-        self.DASHSCOPE_BASE_URL = self.config.get('llm', 'dashscope_base_url',
-                                                  fallback='https://dashscope.aliyuncs.com/compatible-mode/v1')
+        # DashScope/LLM API 密钥 — config.ini 优先，环境变量可覆盖
+        _api_key_from_file = self.config.get('llm', 'dashscope_api_key', fallback='')
+        self.DASHSCOPE_API_KEY = _api_key_from_file if _api_key_from_file else os.getenv('DASHSCOPE_API_KEY', '')
+        # Base URL
+        _base_url_from_file = self.config.get('llm', 'dashscope_base_url', fallback='')
+        self.DASHSCOPE_BASE_URL = _base_url_from_file if _base_url_from_file else os.getenv('DASHSCOPE_BASE_URL',
+            'https://dashscope.aliyuncs.com/compatible-mode/v1')
 
         # 检索参数
         # 父块大小

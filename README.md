@@ -20,11 +20,12 @@
 | Embedding | BGE-M3 (dense + sparse) |
 | Reranker | BGE-Reranker-Large |
 | LLM | DeepSeek API |
+| 视觉模型 | Ollama llama3.2-vision:11b |
 | 查询分类 | BERT (bert-base-chinese) |
 | OCR | PaddleOCR / RapidOCR |
-| 结构化提取 | PaddleOCR PPStructure / pdfplumber |
+| 结构化提取 | pdfplumber / PaddleOCR PPStructure |
 | 缓存 | Redis |
-| 存储 | MySQL |
+| 存储 | MySQL + Milvus |
 
 ## 快速开始
 

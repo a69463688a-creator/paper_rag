@@ -106,7 +106,7 @@ def main(query_mode=True, directory_path="data"):
              return
 
         valid_sources = conf.VALID_SOURCES
-        print("\n欢迎使用 EduRAG 交互式查询系统！")
+        print("\n欢迎使用 PaperRAG 交互式查询系统！")
         print(f"支持的学科类别：{valid_sources}")
         print("输入您的问题，或输入 'exit' 退出。")
 
@@ -148,7 +148,7 @@ if __name__ == "__main__":
     # main(query_mode=False)
     # 或者通过命令行参数控制
     import argparse
-    parser = argparse.ArgumentParser(description="EduRAG System Main Entry Point")
+    parser = argparse.ArgumentParser(description="PaperRAG System Main Entry Point")
     parser.add_argument('--data-processing', action='store_true', help='Run in data processing mode instead of query mode.')
     parser.add_argument('--data-dir', type=str, default='./data', help='Path to the data directory.')
     args = parser.parse_args()

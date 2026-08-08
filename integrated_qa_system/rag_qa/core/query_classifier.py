@@ -23,13 +23,13 @@ from sklearn.metrics import classification_report, confusion_matrix
 
 class QueryClassifier:
     def __init__(self,model_path='../models/bert_query_classifier'):
-        bert_path=f'{rag_qa_path}/models/bert-base-chinese'
+        self.bert_path=f'{rag_qa_path}/models/bert-base-chinese'
         self.model_path=model_path
-        self.tokenizer = BertTokenizer.from_pretrained(bert_path)
+        self.tokenizer = BertTokenizer.from_pretrained(self.bert_path)
         self.model=None
         self.device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         logger.info(self.device)
-        self.label_map={'通用知识':0,'专业咨询':1}
+        self.label_map={'通用问答':0,'论文学术咨询':1}
         self.load_model()
 
     def load_model(self):
@@ -42,7 +42,7 @@ class QueryClassifier:
             logger.info(f"加载模型: {self.model_path}")
         else:
             # 初始化新模型
-            self.model = BertForSequenceClassification.from_pretrained("../models/bert-base-chinese", num_labels=2)
+            self.model = BertForSequenceClassification.from_pretrained(self.bert_path, num_labels=2)
             # 将模型移到指定设备
             self.model.to(self.device)
             # 记录初始化模型的日志
@@ -178,7 +178,7 @@ class QueryClassifier:
         logger.info(classification_report(
             true_labels,
             pred_labels,
-            target_names=["通用知识", "专业咨询"]
+            target_names=["通用问答", "论文学术咨询"]
         ))
         logger.info("混淆矩阵:")
         logger.info(confusion_matrix(true_labels, pred_labels))
@@ -186,7 +186,7 @@ class QueryClassifier:
     def predict_category(self, query):
         if self.model is None:
             logger.error('模型未训练或加载')
-            raise '通用知识'
+            raise '通用问答'
         encoding = self.tokenizer(
             query,
             truncation=True,
@@ -198,7 +198,7 @@ class QueryClassifier:
         with torch.no_grad():
             outputs=self.model(**encoding)
             prediction=torch.argmax(outputs.logits, dim=-1).item()
-        return '专业咨询' if prediction==1 else '通用知识'
+        return '论文学术咨询' if prediction==1 else '通用问答'
 
 
 

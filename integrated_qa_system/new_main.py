@@ -2,7 +2,8 @@
 
 from mysql_qa import RedisClient,MySQLClient,BM25Search
 
-from rag_qa import RAGSystem,VectorStore
+from rag_qa.core.new_rag_system import RAGSystem
+from rag_qa.core.vector_store import VectorStore
 
 from base.config import Config
 from base.logger import logger
@@ -33,6 +34,7 @@ class IntegratedQASystem:
         self.init_conversation_table()
 
     def init_conversation_table(self):
+        self.mysql_client.ensure_connection()
         try:
             self.mysql_client.cursor.execute("""
             CREATE TABLE IF NOT EXISTS conversations (
@@ -50,6 +52,7 @@ class IntegratedQASystem:
             raise
 
     def _fetch_recent_history(self,session_id):
+        self.mysql_client.ensure_connection()
         try:
             self.mysql_client.cursor.execute("""
                 SELECT question, answer
@@ -68,6 +71,7 @@ class IntegratedQASystem:
         return self._fetch_recent_history(session_id)
 
     def update_session_history(self, session_id: str, question: str, answer: str) -> list:
+        self.mysql_client.ensure_connection()
         try:
             self.mysql_client.cursor.execute("""
                  INSERT INTO conversations (session_id, question, answer, timestamp)
@@ -98,6 +102,7 @@ class IntegratedQASystem:
             raise
 
     def clear_session_history(self, session_id: str) -> bool:
+        self.mysql_client.ensure_connection()
         try:
             self.mysql_client.cursor.execute("""
                 DELETE FROM conversations

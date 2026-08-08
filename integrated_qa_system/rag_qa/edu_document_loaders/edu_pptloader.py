@@ -101,6 +101,6 @@ class OCRPPTLoader(BaseLoader):
 
 if __name__ == '__main__':
     from base.config import config
-    img_loader = OCRPPTLoader(filepath=f'{config.DATA_DIR}/ai_data/01.pptx')
+    img_loader = OCRPPTLoader(filepath=f'{config.DATA_DIR}/paper_data/01.pptx')
     doc = img_loader.load()
     print(doc)

@@ -1,5 +1,6 @@
 import torch.cuda
 
+from typing import Optional
 from milvus_model.hybrid import BGEM3EmbeddingFunction
 from  pymilvus import MilvusClient,DataType,AnnSearchRequest,WeightedRanker
 from  langchain_core.documents import Document
@@ -10,8 +11,6 @@ from sentence_transformers import CrossEncoder
 import hashlib
 
 import sys,os
-
-from sqlalchemy.testing.suite.test_reflection import metadata
 
 
 local_path=os.path.abspath(os.path.dirname(__file__))
@@ -65,9 +64,15 @@ class VectorStore:
 
 
 
+        # 论文图表/表格 Collection 名称（在主 collection 名后加后缀）
+        self.figure_collection_name = f"{collection_name}_figures"
+        self.table_collection_name = f"{collection_name}_tables"
+
         self.client = MilvusClient(uri=f"http://{self.host}:{self.port}",db_name=self.database)
 
         self._create_or_load_collection()
+        self._create_figure_collection()
+        self._create_table_collection()
 
     def _create_or_load_collection(self):
         # 检查指定集合是否已存在
@@ -121,6 +126,159 @@ class VectorStore:
             logger.info(f"已加载集合 {self.collection_name}")
         # 将集合加载到内存，确保可立即查询
         self.client.load_collection(self.collection_name)
+
+    def _create_figure_collection(self):
+        """创建论文图表集合 (paper_rag_figures)"""
+        if self.client.has_collection(self.figure_collection_name):
+            logger.info(f"已加载集合 {self.figure_collection_name}")
+            self.client.load_collection(self.figure_collection_name)
+            return
+
+        schema = self.client.create_schema(auto_id=False, enable_dynamic_field=True)
+        schema.add_field(field_name="figure_id", datatype=DataType.VARCHAR, is_primary=True, max_length=100)
+        schema.add_field(field_name="paper_id", datatype=DataType.VARCHAR, max_length=100)
+        schema.add_field(field_name="image_path", datatype=DataType.VARCHAR, max_length=500)
+        schema.add_field(field_name="caption", datatype=DataType.VARCHAR, max_length=2000)
+        schema.add_field(field_name="description", datatype=DataType.VARCHAR, max_length=65535)
+        schema.add_field(field_name="caption_vector", datatype=DataType.FLOAT_VECTOR, dim=self.dense_dim)
+        schema.add_field(field_name="page_num", datatype=DataType.INT32)
+
+        index_params = self.client.prepare_index_params()
+        index_params.add_index(
+            field_name="caption_vector",
+            index_name="fig_caption_idx",
+            index_type="IVF_FLAT",
+            metric_type="IP",
+            params={"nlist": 64}
+        )
+        self.client.create_collection(self.figure_collection_name, schema=schema, index_params=index_params)
+        self.client.load_collection(self.figure_collection_name)
+        logger.info(f"已创建集合 {self.figure_collection_name}")
+
+    def _create_table_collection(self):
+        """创建论文表格集合 (paper_rag_tables)"""
+        if self.client.has_collection(self.table_collection_name):
+            logger.info(f"已加载集合 {self.table_collection_name}")
+            self.client.load_collection(self.table_collection_name)
+            return
+
+        schema = self.client.create_schema(auto_id=False, enable_dynamic_field=True)
+        schema.add_field(field_name="table_id", datatype=DataType.VARCHAR, is_primary=True, max_length=100)
+        schema.add_field(field_name="paper_id", datatype=DataType.VARCHAR, max_length=100)
+        schema.add_field(field_name="markdown", datatype=DataType.VARCHAR, max_length=65535)
+        schema.add_field(field_name="vector", datatype=DataType.FLOAT_VECTOR, dim=self.dense_dim)
+        schema.add_field(field_name="page_num", datatype=DataType.INT32)
+        schema.add_field(field_name="row_count", datatype=DataType.INT32)
+        schema.add_field(field_name="col_count", datatype=DataType.INT32)
+
+        index_params = self.client.prepare_index_params()
+        index_params.add_index(
+            field_name="vector",
+            index_name="tbl_vector_idx",
+            index_type="IVF_FLAT",
+            metric_type="IP",
+            params={"nlist": 64}
+        )
+        self.client.create_collection(self.table_collection_name, schema=schema, index_params=index_params)
+        self.client.load_collection(self.table_collection_name)
+        logger.info(f"已创建集合 {self.table_collection_name}")
+
+    def add_figures(self, figures: list):
+        """
+        将图表数据写入 paper_figures 集合
+
+        :param figures: FigureExtractor.extract_from_pdf 的返回值（已含 description）
+        """
+        if not figures:
+            return
+        # 用 caption + description 拼接后的文本做 embedding
+        texts = [f"{f.get('caption', '')}\n{f.get('description', '')}" for f in figures]
+        embeddings = self.embedding_function(texts)
+
+        data = []
+        for i, fig in enumerate(figures):
+            data.append({
+                "figure_id": fig["figure_id"],
+                "paper_id": fig.get("paper_id", ""),
+                "image_path": fig.get("image_path", ""),
+                "caption": fig.get("caption", ""),
+                "description": fig.get("description", ""),
+                "caption_vector": embeddings["dense"][i],
+                "page_num": fig.get("page_num", 0),
+            })
+        self.client.upsert(collection_name=self.figure_collection_name, data=data)
+        logger.info(f"插入 {len(data)} 条图表数据到 {self.figure_collection_name}")
+
+    def add_tables(self, tables: list):
+        """
+        将表格数据写入 paper_tables 集合
+
+        :param tables: TableExtractor.extract_from_pdf 的返回值
+        """
+        if not tables:
+            return
+        texts = [t.get("markdown", "") for t in tables]
+        embeddings = self.embedding_function(texts)
+
+        data = []
+        for i, tbl in enumerate(tables):
+            data.append({
+                "table_id": tbl["table_id"],
+                "paper_id": tbl.get("paper_id", ""),
+                "markdown": tbl.get("markdown", ""),
+                "vector": embeddings["dense"][i],
+                "page_num": tbl.get("page_num", 0),
+                "row_count": tbl.get("row_count", 0),
+                "col_count": tbl.get("col_count", 0),
+            })
+        self.client.upsert(collection_name=self.table_collection_name, data=data)
+        logger.info(f"插入 {len(data)} 条表格数据到 {self.table_collection_name}")
+
+    def search_figures(self, query: str, k: int = 3, paper_id: Optional[str] = None) -> list:
+        """
+        检索与查询相关的论文图表
+
+        :param query: 查询文本
+        :param k: 返回数量
+        :param paper_id: 可选，限定某篇论文
+        :return: 图表信息列表
+        """
+        query_embeddings = self.embedding_function([query])
+        dense_vector = query_embeddings["dense"][0]
+
+        filter_expr = f"paper_id == '{paper_id}'" if paper_id else ""
+        results = self.client.search(
+            collection_name=self.figure_collection_name,
+            data=[dense_vector],
+            limit=k,
+            filter=filter_expr,
+            output_fields=["figure_id", "paper_id", "image_path", "caption", "description", "page_num"]
+        )[0]
+
+        return [hit["entity"] for hit in results]
+
+    def search_tables(self, query: str, k: int = 3, paper_id: Optional[str] = None) -> list:
+        """
+        检索与查询相关的论文表格
+
+        :param query: 查询文本
+        :param k: 返回数量
+        :param paper_id: 可选，限定某篇论文
+        :return: 表格信息列表
+        """
+        query_embeddings = self.embedding_function([query])
+        dense_vector = query_embeddings["dense"][0]
+
+        filter_expr = f"paper_id == '{paper_id}'" if paper_id else ""
+        results = self.client.search(
+            collection_name=self.table_collection_name,
+            data=[dense_vector],
+            limit=k,
+            filter=filter_expr,
+            output_fields=["table_id", "paper_id", "markdown", "page_num", "row_count", "col_count"]
+        )[0]
+
+        return [hit["entity"] for hit in results]
 
     def add_documents(self, documents):
         texts=[doc.page_content for doc in documents]
@@ -271,7 +429,7 @@ class VectorStore:
 if __name__ == '__main__':
     vector_store=VectorStore()
 
-    # directory_path='../data/ai_data'
+    # directory_path='../data/paper_data'
     # # print(vector_store.embedding_function.dim)
     #
     # documents=process_documents(directory_path)

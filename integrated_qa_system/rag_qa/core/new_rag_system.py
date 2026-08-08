@@ -2,6 +2,7 @@ import sys,os
 
 from torch.backends.opt_einsum import strategy
 
+from langchain_core.documents import Document
 from rag_qa.core.prompts import RAGPrompts
 import time
 
@@ -127,6 +128,35 @@ class RAGSystem:
                 query, k=conf.RETRIEVAL_K, source_filter=source_filter
             )
         logger.info(f'策略{strategy}检索到{len(ranked_sub_chunks)}个候选文档')
+
+        # 三路检索合并：文本 + 图表 + 表格
+        try:
+            figure_results = self.vector_store.search_figures(query, k=2)
+            if figure_results:
+                for fig in figure_results:
+                    fig_content = f"[图表] {fig.get('caption', '')}\n{fig.get('description', '')}"
+                    ranked_sub_chunks.append(Document(
+                        page_content=fig_content,
+                        metadata={"type": "figure", "paper_id": fig.get("paper_id", ""),
+                                   "image_path": fig.get("image_path", "")}
+                    ))
+                logger.info(f'图表检索补充 {len(figure_results)} 个结果')
+        except Exception as e:
+            logger.warning(f"图表检索跳过: {e}")
+
+        try:
+            table_results = self.vector_store.search_tables(query, k=2)
+            if table_results:
+                for tbl in table_results:
+                    tbl_content = f"[表格] (page {tbl.get('page_num', '?')})\n{tbl.get('markdown', '')}"
+                    ranked_sub_chunks.append(Document(
+                        page_content=tbl_content,
+                        metadata={"type": "table", "paper_id": tbl.get("paper_id", "")}
+                    ))
+                logger.info(f'表格检索补充 {len(table_results)} 个结果')
+        except Exception as e:
+            logger.warning(f"表格检索跳过: {e}")
+
         final_content_docs=ranked_sub_chunks[:conf.CANDIDATE_M]
         logger.info(f'最终上下文文档数量: {len(final_content_docs)}')
         return final_content_docs
@@ -154,10 +184,22 @@ class RAGSystem:
             logger.info(f"使用对话历史: {history_context[:100]}...")
 
         query_category = self.query_classifier.predict_category(query)
+
+        # 关键词规则兜底：包含论文相关关键词的问题强制按学术咨询处理
+        paper_keywords = [
+            "论文", "文献", "arxiv", "模型架构", "自注意力", "预训练",
+            "Figure", "Table", "图表", "公式", "实验", "对比", "综述",
+            "Transformer", "BERT", "GPT", "ResNet", "ViT", "LSTM", "CNN",
+            "消融", "参数量", "贡献", "架构图", "encoder", "decoder",
+        ]
+        if query_category == "通用问答" and any(kw.lower() in query.lower() for kw in paper_keywords):
+            query_category = "论文学术咨询"
+            logger.info(f"关键词规则兜底：查询分类改为论文学术咨询 (查询: '{query}')")
+
         logger.info(f"查询分类结果：{query_category} (查询: '{query}')")
 
-        if query_category == "通用知识":
-            logger.info("查询为通用知识，直接调用 LLM")
+        if query_category == "通用问答":
+            logger.info("查询为通用问答，直接调用 LLM")
             prompt_input = self.rag_prompt.format(
                 context="", history=history_context, question=query, phone=conf.CUSTOMER_SERVICE_PHONE
             )
@@ -165,14 +207,14 @@ class RAGSystem:
                 answer = self.llm(prompt_input)
             except Exception as e:
                 logger.error(f"直接调用 LLM 失败: {e}")
-                answer = f"抱歉，处理您的通用知识问题时出错。请联系人工客服：{conf.CUSTOMER_SERVICE_PHONE}"
+                answer = f"抱歉，处理您的通用问答问题时出错。请联系人工客服：{conf.CUSTOMER_SERVICE_PHONE}"
             processing_time = time.time() - start_time
             logger.info(
-                f"通用知识查询处理完成 (耗时: {processing_time:.2f}s, 查询: '{query}')"
+                f"通用问答查询处理完成 (耗时: {processing_time:.2f}s, 查询: '{query}')"
             )
             return answer
 
-        logger.info("查询为专业咨询，执行 RAG 流程")
+        logger.info("查询为论文学术咨询，执行 RAG 流程")
         strategy = self.strategy_selector.select_strategy(query)
 
         context_docs = self.retrieve_and_merge(
@@ -201,7 +243,7 @@ class RAGSystem:
             answer = self.llm(prompt_input)
         except Exception as e:
             logger.error(f"调用 LLM 生成最终答案失败: {e}")
-            answer = f"抱歉，处理您的专业咨询问题时出错。请联系人工客服：{conf.CUSTOMER_SERVICE_PHONE}"
+            answer = f"抱歉，处理您的论文学术咨询问题时出错。请联系人工客服：{conf.CUSTOMER_SERVICE_PHONE}"
 
         #   记录查询处理完成的日志
         processing_time = time.time() - start_time

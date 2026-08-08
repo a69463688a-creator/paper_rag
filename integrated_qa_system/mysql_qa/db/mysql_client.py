@@ -13,20 +13,41 @@ from base import Config,logger
 class MySQLClient:
     def __init__(self):
         self.logger=logger
+        self._config = {
+            'host': Config().MYSQL_HOST,
+            'user': Config().MYSQL_USER,
+            'password': Config().MYSQL_PASSWORD,
+            'database': Config().MYSQL_DATABASE,
+            'autocommit': True,
+            'connect_timeout': 10,
+            'read_timeout': 30,
+            'write_timeout': 30,
+        }
+        self._connect()
+
+    def _connect(self):
+        """建立 MySQL 连接"""
         try:
-            self.connection=pymysql.connect(
-                host=Config().MYSQL_HOST,
-                user=Config().MYSQL_USER,
-                password=Config().MYSQL_PASSWORD,
-                database=Config().MYSQL_DATABASE
-            )
-            self.cursor=self.connection.cursor()
+            self.connection = pymysql.connect(**self._config)
+            self.cursor = self.connection.cursor()
             self.logger.info("mysql client successfully initialized")
         except Exception as e:
             self.logger.error(f'MySQL connect error: {e}')
             raise
 
+    def ensure_connection(self):
+        """确保连接有效，断开则自动重连（公开方法，供外部调用）"""
+        try:
+            self.connection.ping(reconnect=True)
+        except Exception:
+            self.logger.warning("MySQL 连接断开，正在重连...")
+            self._connect()
+
+    # 内部别名
+    _ensure_connection = ensure_connection
+
     def create_table(self):
+        self._ensure_connection()
         create_table_query="""
         CREATE TABLE IF NOT EXISTS jpkb (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -42,6 +63,7 @@ class MySQLClient:
             self.logger.error(f'MySQL create table error: {e}')
             raise
     def insert_data(self,csv_path):
+        self._ensure_connection()
         try:
             data =pd.read_csv(csv_path)
             # print(data.head())
@@ -57,6 +79,7 @@ class MySQLClient:
             raise
 
     def fetch_questions(self):
+        self._ensure_connection()
         try:
             self.cursor.execute('select question from jpkb')
             results=self.cursor.fetchall()
@@ -67,6 +90,7 @@ class MySQLClient:
             return []
 
     def fetch_answer(self,question):
+        self._ensure_connection()
         try:
             self.cursor.execute('select answer from jpkb where question=%s',(question,))
             result=self.cursor.fetchone()
