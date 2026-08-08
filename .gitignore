@@ -1,0 +1,41 @@
+# ========== 敏感配置 ==========
+config.ini
+
+# ========== Python ==========
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# ========== 虚拟环境 ==========
+venv/
+.env/
+.venv/
+env/
+
+# ========== IDE ==========
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ========== 模型文件（太大，请从 HuggingFace 手动下载） ==========
+integrated_qa_system/rag_qa/models/
+
+# ========== 训练产出（太大，含模型权重） ==========
+integrated_qa_system/rag_qa/core/bert_results/
+bert_results/
+
+# ========== 日志 ==========
+logs/
+*.log
+
+# ========== 系统文件 ==========
+.DS_Store
+Thumbs.db
+
+# ========== 运行时文件 ==========
+*.lock
