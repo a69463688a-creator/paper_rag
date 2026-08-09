@@ -22,7 +22,7 @@ MIN_FIGURE_WIDTH = 100
 MIN_FIGURE_HEIGHT = 100
 
 # 视觉模型名称（Ollama）
-VISION_MODEL = "llama3.2-vision:11b"
+VISION_MODEL = "qwen3-vl:8b"
 
 
 class FigureExtractor:
@@ -122,13 +122,24 @@ class FigureExtractor:
                 f"The figure caption is: '{caption}'."
             )
             try:
+                # 截断过长的 caption，避免超出 context 限制
+                max_caption_len = 1500
+                if len(caption) > max_caption_len:
+                    caption = caption[:max_caption_len] + "..."
+                    prompt = (
+                        "You are an academic paper analyst. Describe this figure in detail. "
+                        "Include: (1) figure type (architecture diagram, chart, table image, etc.), "
+                        "(2) key data or components shown, (3) the main conclusion or takeaway. "
+                        f"The figure caption is: '{caption}'."
+                    )
                 response = ollama.chat(
                     model=self.vision_model,
                     messages=[{
                         "role": "user",
                         "content": prompt,
                         "images": [fig["image_path"]],
-                    }]
+                    }],
+                    options={"num_ctx": 8192}
                 )
                 fig["description"] = response["message"]["content"]
                 logger.info(f"视觉描述完成: {fig['figure_id']} ({fig['caption'][:50]}...)")
