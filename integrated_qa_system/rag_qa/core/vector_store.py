@@ -424,8 +424,46 @@ class VectorStore:
             }
         )
 
+    # ==================== 增量索引 ====================
 
+    def get_indexed_paper_ids(self) -> set:
+        """查询三个 Collection 中已索引的 paper_id 集合并返回"""
+        ids = set()
+        for col_name, label in [
+            (self.collection_name, '文本'),
+            (self.figure_collection_name, '图表'),
+            (self.table_collection_name, '表格'),
+        ]:
+            try:
+                results = self.client.query(
+                    collection_name=col_name,
+                    filter="paper_id != ''",
+                    output_fields=['paper_id'],
+                    limit=10000
+                )
+                ids.update(r['paper_id'] for r in results if r.get('paper_id'))
+                logger.info(f'[增量索引] {label} Collection 已有 {len(results)} 条记录')
+            except Exception as e:
+                logger.warning(f'[增量索引] 查询 {label} Collection 失败: {e}')
+        logger.info(f'[增量索引] 已索引论文总数: {len(ids)} 篇')
+        return ids
 
+    def delete_paper_data(self, paper_id: str):
+        """从三个 Collection 中删除指定论文的所有数据"""
+        for col_name, label in [
+            (self.collection_name, '文本'),
+            (self.figure_collection_name, '图表'),
+            (self.table_collection_name, '表格'),
+        ]:
+            try:
+                result = self.client.delete(
+                    collection_name=col_name,
+                    filter=f"paper_id == '{paper_id}'"
+                )
+                cnt = result.get('delete_count', 0) if isinstance(result, dict) else 0
+                logger.info(f'[增量索引] 删除 {label} {cnt} 条 (paper_id={paper_id})')
+            except Exception as e:
+                logger.warning(f'[增量索引] 删除 {label} 失败 (paper_id={paper_id}): {e}')
 
 
 if __name__ == '__main__':

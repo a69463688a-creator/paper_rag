@@ -177,6 +177,25 @@ def process_documents(directory_path, parent_chunk_size=conf.PARENT_CHUNK_SIZE,
     return child_chunks
 
 
+def get_paper_ids_from_directory(directory_path: str) -> set:
+    """
+    扫描目录中所有 PDF 文件，从文件名提取 paper_id
+
+    :param directory_path: 论文 PDF 存放目录
+    :return: paper_id 集合
+    """
+    paper_ids = set()
+    if not os.path.isdir(directory_path):
+        logger.warning(f"目录不存在: {directory_path}")
+        return paper_ids
+
+    for root, _, files in os.walk(directory_path):
+        for file in files:
+            if file.lower().endswith('.pdf'):
+                paper_id = os.path.splitext(file)[0]
+                paper_ids.add(paper_id)
+    logger.info(f"[增量索引] 磁盘扫描: {len(paper_ids)} 篇论文 PDF (目录: {directory_path})")
+    return paper_ids
 
 
 
