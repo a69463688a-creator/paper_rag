@@ -1,5 +1,14 @@
 import os
 import configparser
+import json
+
+# 加载 .env 文件（优先级最低，环境变量可覆盖）
+from dotenv import load_dotenv
+_current_file_path = os.path.abspath(__file__)
+_project_root = os.path.dirname(os.path.dirname(_current_file_path))
+_dotenv_path = os.path.join(_project_root, '.env')
+if os.path.exists(_dotenv_path):
+    load_dotenv(_dotenv_path)
 
 current_file_path = os.path.abspath(__file__)
 current_dir_path = os.path.dirname(current_file_path)
@@ -82,7 +91,7 @@ class Config:
 
         # 应用配置
         # 有效来源列表
-        self.VALID_SOURCES = eval(
+        self.VALID_SOURCES = json.loads(
             self.config.get('app', 'valid_sources', fallback='["cs", "nlp", "cv", "ai"]'))
         # 客服电话
         self.CUSTOMER_SERVICE_PHONE = self.config.get('app', 'customer_service_phone', fallback='12345678')

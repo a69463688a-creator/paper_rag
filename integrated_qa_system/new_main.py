@@ -118,23 +118,50 @@ class IntegratedQASystem:
     
 
     def call_dashscope(self, prompt):
-        try:
-            completion = self.client.chat.completions.create(
-                model=self.config.LLM_MODEL,
-                messages=[
-                    {"role": "system", "content": "你是一个靠谱的助手，根据信息好好回答问题。"},
-                    {"role": "user", "content": prompt},
-                ],
-                timeout=30,
-                stream=True
-            )
-            for chunk in completion:
-                if chunk.choices and chunk.choices[0].delta.content:
-                    content = chunk.choices[0].delta.content
-                    yield content
-        except Exception as e:
-            self.logger.error(f"LLM 调用失败: {e}")
-            return f"错误：LLM 调用失败 - {e}"
+        """
+        调用 LLM 流式生成，带指数退避重试
+
+        对瞬时性错误（网络超时、服务端 5xx 等）自动重试最多 3 次，
+        重试间隔采用指数退避 + 随机抖动策略。
+        """
+        import time as time_module
+        import random
+
+        max_retries = 3
+        base_delay = 1.0
+        last_error = None
+
+        for attempt in range(max_retries + 1):
+            try:
+                completion = self.client.chat.completions.create(
+                    model=self.config.LLM_MODEL,
+                    messages=[
+                        {"role": "system", "content": "你是一个靠谱的助手，根据信息好好回答问题。"},
+                        {"role": "user", "content": prompt},
+                    ],
+                    timeout=30,
+                    stream=True
+                )
+                # 流式输出 token
+                for chunk in completion:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        content = chunk.choices[0].delta.content
+                        yield content
+                return  # 成功完成，退出
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries:
+                    delay = min(base_delay * (2 ** attempt) + random.uniform(0, 1), 30.0)
+                    self.logger.warning(
+                        f"[LLM 重试 {attempt + 1}/{max_retries}] 调用失败: {e}，"
+                        f"{delay:.1f}s 后重试"
+                    )
+                    time_module.sleep(delay)
+                else:
+                    self.logger.error(f"[LLM 重试耗尽] 已重试 {max_retries} 次，最终错误: {e}")
+
+        # 所有重试都失败
+        yield f"抱歉，LLM 服务暂时不可用，请稍后重试。（错误: {str(last_error)[:100]}）"
         
     
 
@@ -149,23 +176,27 @@ class IntegratedQASystem:
                 self.update_session_history(session_id, query, answer)
             processing_time = time.time() - start_time
             self.logger.info(f"查询处理耗时 {processing_time:.2f}秒")
-            yield answer, True
+            yield answer, True, None
         elif need_rag:
             self.logger.info("无可靠MySQL答案，回退到RAG")
             collected_answer = ""
             for token in self.rag_system.generate_answer(query, source_filter=source_filter, history=history):
                 collected_answer += token
-                yield token, False
+                yield token, False, None
+            # 附加来源信息
+            sources = self.rag_system.last_sources
+            if sources:
+                yield "", False, sources
             if session_id:
                 self.update_session_history(session_id, query, collected_answer)
             processing_time = time.time() - start_time
             self.logger.info(f"查询处理耗时 {processing_time:.2f}秒")
-            yield "", True
+            yield "", True, None
         else:
             self.logger.info("未找到答案")
             processing_time = time.time() - start_time
             self.logger.info(f"查询处理耗时 {processing_time:.2f}秒")
-            yield "未找到答案", True
+            yield "未找到答案", True, None
 
 def main():
     qa_system = IntegratedQASystem()
@@ -188,10 +219,15 @@ def main():
                 source_filter = None
             print("\n答案: ", end="", flush=True)
             answer = ""
-            for token, is_complete in qa_system.query(query, source_filter=source_filter, session_id=session_id):
+            for item in qa_system.query(query, source_filter=source_filter, session_id=session_id):
+                token, is_complete, sources = item if len(item) == 3 else (item[0], item[1], None)
                 if token:
                     print(token, end="", flush=True)
                     answer += token
+                if sources:
+                    print("\n\n📚 参考来源:")
+                    for src in sources:
+                        print(f"  • {src.get('paper_id', '未知')} ({src.get('type', 'text')})")
                 if is_complete:
                     print()
                     break

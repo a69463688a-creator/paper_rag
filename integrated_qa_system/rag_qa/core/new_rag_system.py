@@ -18,9 +18,11 @@ from rag_qa.core.vector_store import VectorStore
 
 
 from transformers import BertTokenizer,BertModel
-local_model_path=r'E:\Workspace\rag_project\integrated_qa_system\rag_qa\models\bert-base-chinese'
+# BERT 模型路径：从当前文件位置推算，兼容 Windows / Linux / Docker
+_rag_qa_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+local_model_path = os.path.join(_rag_qa_dir, 'models', 'bert-base-chinese')
 tokenizer = BertTokenizer.from_pretrained(local_model_path)
-model=BertModel.from_pretrained(local_model_path)
+model = BertModel.from_pretrained(local_model_path)
 from openai import OpenAI
 
 conf=Config()
@@ -35,6 +37,8 @@ class RAGSystem:
         self.vector_store=vector_store
         self.llm=llm
         self.rag_prompt=RAGPrompts.rag_prompt()
+        # 最近一次检索的来源信息，供前端展示引用
+        self.last_sources = []
 
         classifier_path=os.path.join(rag_qa_path,'models','bert_query_classifier')
         self.query_classifier=QueryClassifier(classifier_path)
@@ -222,10 +226,23 @@ class RAGSystem:
 
         if context_docs:
             context = "\n\n".join([doc.page_content for doc in context_docs])
-            logger.info(f"构建上下文完成，包含 {len(context_docs)} 个文档块")
-            # logger.debug(f"上下文内容:\n{context[:500]}...")
+            # 提取来源元数据供前端引用展示
+            self.last_sources = []
+            seen = set()
+            for doc in context_docs:
+                meta = doc.metadata
+                source_key = str(meta.get("paper_id", "")) or meta.get("source", "")
+                if source_key and source_key not in seen:
+                    seen.add(source_key)
+                    self.last_sources.append({
+                        "paper_id": meta.get("paper_id", ""),
+                        "type": meta.get("type", "text"),
+                        "source": meta.get("source", ""),
+                    })
+            logger.info(f"构建上下文完成，包含 {len(context_docs)} 个文档块，来源 {len(self.last_sources)} 篇")
         else:
             context = ""
+            self.last_sources = []
             logger.info("未检索到相关文档，上下文为空")
 
 

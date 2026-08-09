@@ -1,0 +1,52 @@
+# PaperRAG — Docker build context ignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Logs
+logs/
+*.log
+
+# Models (挂载进容器，不要打包到镜像)
+integrated_qa_system/rag_qa/models/
+
+# Data (挂载进容器)
+integrated_qa_system/rag_qa/data/
+
+# Tests
+integrated_qa_system/tests/
+
+# Docs
+README.md
+CLAUDE.md
+
+# Docker
+docker/
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# .env 已接管敏感配置，config.ini 可以打包进镜像

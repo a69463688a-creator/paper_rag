@@ -29,9 +29,12 @@ app=FastAPI(title="论文阅读助手API",description='集成MySQL和RAG的学�
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 允许所有来源（生产环境需限制）
+    allow_origins=[
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+    ],
     allow_credentials=True,  # 允许凭证 Cookie
-    allow_methods=["*"],  # 允许所有 HTTP 方法 GET/POST等
+    allow_methods=["GET", "POST"],  # 仅允许实际用到的 HTTP 方法
     allow_headers=["*"],  # 允许所有头部
 )
 os.makedirs("static",exist_ok=True)
@@ -193,8 +196,14 @@ async def websocket_endpoint(websocket: WebSocket):
                 break
             # 调用问答系统，流式处理查询
             collected_answer = ""
-            for token, is_complete in qa_system.query(query, source_filter=source_filter, session_id=session_id):
+            pending_sources = None
+            for item in qa_system.query(query, source_filter=source_filter, session_id=session_id):
+                token, is_complete, sources = item if len(item) == 3 else (item[0], item[1], None)
                 collected_answer += token  # 累积答案
+                # 缓存来源信息，在 end 消息前发送
+                if sources:
+                    pending_sources = sources
+                    continue
                 if is_complete and not collected_answer:
                     if websocket.client_state == websocket.client_state.CONNECTED:
                         # 发送结束标志
@@ -213,6 +222,13 @@ async def websocket_endpoint(websocket: WebSocket):
                         "session_id": session_id
                     })
                 if is_complete:
+                    # 先发送来源信息
+                    if pending_sources and websocket.client_state == websocket.client_state.CONNECTED:
+                        await websocket.send_json({
+                            "type": "sources",
+                            "sources": pending_sources,
+                            "session_id": session_id
+                        })
                     if websocket.client_state == websocket.client_state.CONNECTED:
                         # 发送结束标志
                         await websocket.send_json({

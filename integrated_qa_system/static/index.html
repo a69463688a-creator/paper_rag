@@ -212,6 +212,40 @@
         .message .bubble p { margin: 4px 0; }
         .message .bubble img { max-width: 100%; border-radius: var(--radius-sm); }
 
+        /* Source citations */
+        .sources-box {
+            margin-top: 10px;
+            padding: 8px 10px;
+            background: var(--primary-bg);
+            border-radius: var(--radius-sm);
+            font-size: .78rem;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .sources-box .sources-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 4px;
+            font-size: .72rem;
+        }
+        .sources-box .source-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 0;
+        }
+        .sources-box .source-item .source-badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: .67rem;
+            background: var(--primary);
+            color: #fff;
+            white-space: nowrap;
+        }
+        .sources-box .source-item .source-badge.figure { background: #8b5cf6; }
+        .sources-box .source-item .source-badge.table { background: #059669; }
+
         /* Typing */
         .typing { display: flex; gap: 4px; padding: 12px 16px; }
         .typing span {
@@ -552,12 +586,29 @@
             }
         }
 
+        function renderSources(sources) {
+            if (!sources || !sources.length) return '';
+            const items = sources.map(s => {
+                const badgeClass = s.type === 'figure' ? 'figure' : s.type === 'table' ? 'table' : '';
+                const typeLabel = s.type === 'figure' ? '图表' : s.type === 'table' ? '表格' : '文本';
+                return `<div class="source-item">
+                    <span class="source-badge ${badgeClass}">${typeLabel}</span>
+                    <span>${s.paper_id || s.source || '未知论文'}</span>
+                </div>`;
+            }).join('');
+            return `<div class="sources-box">
+                <div class="sources-title">📚 参考来源 (${sources.length}篇)</div>
+                ${items}
+            </div>`;
+        }
+
         function streamResponse(query, filter, bubble) {
             if (socket && socket.readyState === WebSocket.OPEN) socket.close();
             return new Promise((resolve, reject) => {
                 const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
                 socket = new WebSocket(`${wsProtocol}//${location.host}${API_BASE}/api/stream`);
                 let accumulated = '';
+                let pendingSources = null;
 
                 socket.onopen = () => socket.send(JSON.stringify({ query, source_filter: filter, session_id: currentSessionId }));
                 socket.onmessage = e => {
@@ -566,8 +617,18 @@
                         accumulated += d.token;
                         bubble.innerHTML = marked.parse(accumulated);
                         $messages.scrollTop = $messages.scrollHeight;
-                    } else if (d.type === 'end') { socket.close(); resolve(); }
-                    else if (d.type === 'error') { bubble.innerHTML += `<p style="color:red">[${d.error}]</p>`; socket.close(); reject(new Error(d.error)); }
+                    } else if (d.type === 'sources') {
+                        pendingSources = d.sources;
+                    } else if (d.type === 'end') {
+                        if (pendingSources) {
+                            bubble.innerHTML += renderSources(pendingSources);
+                            $messages.scrollTop = $messages.scrollHeight;
+                        }
+                        socket.close(); resolve();
+                    } else if (d.type === 'error') {
+                        bubble.innerHTML += `<p style="color:red">[${d.error}]</p>`;
+                        socket.close(); reject(new Error(d.error));
+                    }
                 };
                 socket.onerror = () => { bubble.innerHTML += '<p style="color:red">[连接错误]</p>'; reject(); };
                 socket.onclose = () => resolve();

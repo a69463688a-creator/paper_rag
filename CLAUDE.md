@@ -4,13 +4,22 @@
 
 ## 快速启动
 
+### 方式一：Docker Compose 一键部署
+
 ```bash
-# 1. Docker
+docker compose up -d
+# → http://localhost:8080
+```
+
+### 方式二：本地开发
+
+```bash
+# 1. 基础设施
 cd E:\Software\milvus_redis && docker compose up -d
 
 # 2. App
 cd integrated_qa_system
-D:/conda_envs/EduRAG-GPU/python app.py
+D:/conda_envs/PaperRAG-GPU/python app.py
 # → http://localhost:8080
 ```
 

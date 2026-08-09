@@ -1,0 +1,153 @@
+# PaperRAG 完整部署
+# 启动: docker compose up -d
+# 查看日志: docker compose logs -f paperrag
+# 停止: docker compose down
+
+services:
+  # ========== MySQL 8.0 ==========
+  mysql:
+    image: mysql:8.0
+    container_name: paperrag-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: paper_rag
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    ports:
+      - "3307:3306"  # 映射到 3307 避免与本地 MySQL 冲突
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d  # 初始化 SQL 脚本
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========== etcd (Milvus 元数据) ==========
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    container_name: paperrag-etcd
+    restart: unless-stopped
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+    volumes:
+      - etcd-data:/etcd/data
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd/data
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # ========== MinIO (Milvus 对象存储) ==========
+  minio:
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    container_name: paperrag-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    volumes:
+      - minio-data:/minio/data
+    command: minio server /minio/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # ========== Milvus 向量数据库 ==========
+  milvus:
+    image: milvusdb/milvus:v2.4.4
+    container_name: paperrag-milvus
+    restart: unless-stopped
+    command: ["milvus", "run", "standalone"]
+    environment:
+      - ETCD_ENDPOINTS=etcd:2379
+      - MINIO_ADDRESS=minio:9000
+    volumes:
+      - milvus-data:/var/lib/milvus
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      etcd:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  # ========== Redis ==========
+  redis:
+    image: redis:7-alpine
+    container_name: paperrag-redis
+    restart: unless-stopped
+    command: redis-server --requirepass 1234 --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "1234", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ========== PaperRAG 应用 ==========
+  paperrag:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paperrag-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # 覆盖 config.ini，指向 Docker 服务名
+      - MYSQL_HOST=mysql
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=123456
+      - MYSQL_DATABASE=paper_rag
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=1234
+      - MILVUS_HOST=milvus
+      - MILVUS_PORT=19530
+      - MILVUS_DATABASE_NAME=paper_rag
+    volumes:
+      # 挂载模型文件（BERT + 分类器），不打包进镜像
+      - ./integrated_qa_system/rag_qa/models:/app/rag_qa/models:ro
+      # 挂载论文数据
+      - ./integrated_qa_system/rag_qa/data:/app/rag_qa/data:ro
+      # 日志持久化
+      - app-logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      milvus:
+        condition: service_started
+    # GPU 直通（需要 nvidia-container-toolkit）
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  mysql-data:
+  etcd-data:
+  minio-data:
+  milvus-data:
+  redis-data:
+  app-logs:
+
+networks:
+  default:
+    name: paperrag-network
