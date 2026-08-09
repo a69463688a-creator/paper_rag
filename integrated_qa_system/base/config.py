@@ -88,6 +88,8 @@ class Config:
         self.RETRIEVAL_K = self.config.getint('retrieval', 'retrieval_k', fallback=5)
         # 最终候选数量
         self.CANDIDATE_M = self.config.getint('retrieval', 'candidate_m', fallback=2)
+        # 中文语义分块开关（默认关闭，需要 modelscope + nlp_bert_document-segmentation 模型）
+        self.USE_SEMANTIC_SPLITTER = self.config.getboolean('retrieval', 'use_semantic_splitter', fallback=False)
 
         # 应用配置
         # 有效来源列表

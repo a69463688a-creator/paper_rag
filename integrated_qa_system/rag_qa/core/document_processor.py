@@ -9,6 +9,12 @@ from rag_qa.document_loaders import OCRIMGLoader
 # 论文 PDF 使用轻量加载器（无需 OCR），扫描件回退到 OCRPDFLoader
 from rag_qa.paper_data.paper_pdf_loader import PaperPDFLoader
 
+# AliTextSplitter: 中文语义分块（可选，需 modelscope + nlp_bert_document-segmentation 模型）
+try:
+    from rag_qa.text_spliter.model_text_spliter import AliTextSplitter
+except ImportError:
+    AliTextSplitter = None
+
 from base.config import Config
 from base.logger import logger
 # import nltk
@@ -138,6 +144,11 @@ def process_documents(directory_path, parent_chunk_size=conf.PARENT_CHUNK_SIZE,
                 parent_splitter_to_use = english_parent_splitter
                 child_splitter_to_use = english_child_splitter
                 splitter_label = "english"
+            elif conf.USE_SEMANTIC_SPLITTER and AliTextSplitter is not None:
+                # 中文语义分块：AliTextSplitter 按主题切父块 → ChineseRecursiveTextSplitter 切子块
+                parent_splitter_to_use = AliTextSplitter(pdf=(file_extension == '.pdf'))
+                child_splitter_to_use = child_splitter
+                splitter_label = "semantic_chinese"
             else:
                 parent_splitter_to_use = parent_splitter
                 child_splitter_to_use = child_splitter
