@@ -55,13 +55,16 @@
 用户提问 "Transformer 相比 LSTM 有什么优势？"
     │
     ▼
-[BM25 MySQL 检索] ── 命中(threshold ≥ 0.85) → 直接返回 ──┐
-    │ 未命中                                               │
-    ▼                                                     │
-[BERT 分类器] "论文学术咨询"                                 │
-    │                                                     │
-    ▼                                                     │
-[策略选择] DeepSeek 分析 → 选择"子查询检索"                   │
+[Redis 缓存 answer:{query}] ── 命中 → 直接返回 (<5ms) ──┐
+    │ 未命中                                              │
+    ▼                                                    │
+[BM25 + MySQL jpkb] ── 命中(≥0.85) → 写Redis → 返回 ──┤
+    │ 未命中                                              │
+    ▼                                                    │
+[BERT 分类器] "论文学术咨询"                                │
+    │                                                    │
+    ▼                                                    │
+[策略选择] DeepSeek 分析 → 选择"子查询检索"                  │
     │                                                     │
     ├─▶ 子查询1: "Transformer 架构特点" ──▶ Milvus 混合检索   │
     ├─▶ 子查询2: "LSTM 架构特点"       ──▶ Milvus 混合检索   │
@@ -85,10 +88,53 @@
 
 | 阶段 | 技术 | 说明 |
 |------|------|------|
-| **第一阶段** | BM25 (MySQL 全文索引) | 高频问题精确匹配，threshold=0.85，命中直接返回 |
-| **第二阶段** | RAG (Milvus + BGE-M3 + Reranker + LLM) | BM25 未命中时启动，多策略 + 多模态检索 |
+| **第一阶段** | BM25 + Redis 缓存 (MySQL jpkb 表) | 论文高频 FAQ 精确匹配，threshold=0.85，命中直接返回 |
+| **第二阶段** | RAG (Milvus + BGE-M3 + Reranker + DeepSeek) | BM25 未命中时启动，多策略 + 多模态检索 |
 
-**设计动机**：BM25 在精确匹配场景下延迟 <50ms，RAG 管线延迟 ~2-3s。两级检索兼顾了性能和覆盖面。
+**设计动机**：BM25 在精确匹配场景下延迟 <50ms（含 Redis 缓存命中时 <5ms），RAG 管线延迟 ~2-3s。两级检索兼顾了性能和覆盖面。
+
+#### BM25 + Redis 缓存机制
+
+```
+用户提问 "ResNet 解决了什么问题"
+    │
+    ▼
+┌─ Redis 查 answer:{query} ── 命中 → 直接返回 (<5ms)
+│   │ 未命中
+│   ▼
+│ jieba 分词 → BM25Okapi 打分 → softmax 归一化
+│   │
+│   ├─ top-1 ≥ 0.85 → MySQL jpkb 查答案 → 写入 Redis answer:{query} → 返回 (<50ms)
+│   └─ top-1 < 0.85 → 进入 RAG 管线
+│
+└─ Redis 未命中但 BM25 命中 → 写入 Redis，下次相同 query 直接缓存返回
+```
+
+**数据存储**：
+
+| 层级 | 存储 | Key/Table | 内容 |
+|------|------|-----------|------|
+| L1 缓存 | Redis | `answer:{query}` | 查询→答案 键值对，首次 BM25 命中后写入 |
+| L2 预热 | Redis | `qa_original_questions` / `qa_tokenized_questions` | MySQL 全量问题的原文 + jieba 分词结果，避免每次重启重复分词 |
+| L3 持久 | MySQL | `jpkb` 表 (subject_name, question, answer) | 26 条论文 FAQ 数据，覆盖 nlp/cv/ai 三个领域 |
+
+**数据示例**（`jpkb` 表，26 条）：
+
+| 领域 | 示例问题 |
+|------|---------|
+| NLP | Transformer 是什么、BERT 是什么、自注意力机制、多头注意力 |
+| CV | ResNet 解决了什么问题、YOLO 核心思想、ViT 是什么、GAN 原理 |
+| AI | Adam 优化器、GPT-3 贡献、DDPM 扩散模型、预训练与微调 |
+
+**BM25 命中实测**：
+
+```
+✅ "ResNet 解决了什么问题"     → 相似度 0.999 → BM25 返回，<50ms
+✅ "GAN 的原理是什么"          → 相似度 0.998 → BM25 返回
+✅ "YOLO 和 Faster R-CNN 区别" → 相似度 0.856 → BM25 返回
+❌ "Transformer 注意力机制细节"  → 相似度 0.196 → RAG 接管
+❌ "今天天气怎么样"             → 相似度 0.038 → RAG 接管（正确拒绝无关问题）
+```
 
 ### 3.2 BERT 查询意图分类器
 
@@ -242,7 +288,7 @@ BGE-Reranker-Large (Cross-Encoder) → 精排 → top-M 最终上下文
 |------|------|------|------|
 | Milvus | 2.4.4 | 19530 | 向量存储与检索 |
 | MySQL | 8.0 | 3306/3307 | 对话历史 + BM25 全文索引 |
-| Redis | latest | 6379 | 会话缓存 |
+| Redis | latest | 6379 | BM25 数据预热 + 查询结果缓存 (L1/L2) |
 | etcd | v3.5.5 | 2379 | Milvus 元数据协调 |
 | MinIO | latest | 9000/9001 | Milvus 对象存储 |
 | FastAPI | latest | 8080 | WebSocket + REST API |
@@ -310,6 +356,7 @@ BGE-Reranker-Large (Cross-Encoder) → 精排 → top-M 最终上下文
 | **LLM 上下文扩充** | 最终上下文从 ~2,400 字增至 ~9,000 字 |
 | **三路合并重构（方案C）** | 图表 top-1 + 表格 top-1 保底入围 → 剩余槽位统一 Cross-Encoder 重排竞争 |
 | **效果** | 图表/表格从"永远被挤占"变为"100% 至少 1 张入围"，跨模态公平打分 |
+| **jpkb 论文 FAQ 改造** | 从 19 篇论文中提炼 26 条高频问答（nlp/cv/ai 三领域），写入 jpkb 表，BM25 + Redis 缓存链路重新激活 |
 
 ---
 
@@ -320,7 +367,7 @@ BGE-Reranker-Large (Cross-Encoder) → 精排 → top-M 最终上下文
 | 嵌入模型 | BGE-M3 (非 OpenAI Embedding) | 中英双语原生支持、免费本地推理、同时输出 dense+sparse |
 | Milvus vs FAISS | Milvus | 持久化存储、分布式支持、混合检索原生支持、生产级 |
 | Parent-Child vs 固定分块 | Parent-Child | 检索精度（小粒度匹配）+ 上下文完整性（大粒度喂 LLM）|
-| 两阶段检索 (BM25+RAG) | 保留 BM25 | 高频问题的延迟从 2s 降到 <50ms |
+| 两阶段检索 (BM25+RAG) | 保留 BM25 + Redis 缓存 | 论文 FAQ 精确匹配延迟 <5ms（Redis 命中）或 <50ms（BM25），远低于 RAG 的 2-3s；两级缓存（Redis → BM25 → RAG）逐级降级保证可用性 |
 | PyMuPDF vs OCR | PyMuPDF (数字原生) | 学术论文 99% 是数字原生 PDF，OCR 不仅慢且无必要 |
 | Ollama 视觉 vs API | Ollama 本地 | 成本考虑，`llama3.2-vision:11b` 免费本地推理 |
 | DeepSeek vs GPT | DeepSeek API | 性价比高、中文能力强、128K 上下文 |
@@ -342,6 +389,7 @@ BGE-Reranker-Large (Cross-Encoder) → 精排 → top-M 最终上下文
 8. **Agent 化**：当前是单轮 RAG → 可扩展为 ReAct Agent（论文检索 + 公式推导 + 实验复现工具链）
 9. **多模态合并策略演进**：固定配额 → 统一重排 → 配额+重排混合 → 查询自适应分配（根据 query 类型动态调整图文表比例）
 10. **分块参数调优方法论**：如何通过 RAGAS 评估 + A/B 测试确定最优 parent/child chunk size？
+11. **两级缓存架构演进**：Redis L1 → BM25 L2 → RAG L3 的逐级降级策略，缓存预热、失效与更新机制
 
 ---
 
