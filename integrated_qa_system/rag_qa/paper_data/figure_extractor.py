@@ -60,10 +60,7 @@ class FigureExtractor:
         all_figures = []
 
         for page_num, page in enumerate(doc):
-            # 获取页面文本块（用于匹配标题）
             text_blocks = page.get_text("blocks")
-
-            # 获取页面中所有图片的元信息
             img_list = page.get_image_info(xrefs=True)
 
             for img_idx, img in enumerate(img_list):
@@ -75,11 +72,9 @@ class FigureExtractor:
                 width = bbox[2] - bbox[0]
                 height = bbox[3] - bbox[1]
 
-                # 过滤小图片
                 if width < MIN_FIGURE_WIDTH or height < MIN_FIGURE_HEIGHT:
                     continue
 
-                # 提取图片数据
                 try:
                     pix = fitz.Pixmap(doc, xref)
                     if pix.n > 4:  # CMYK → RGB
@@ -89,13 +84,11 @@ class FigureExtractor:
                     logger.warning(f"提取图片失败 (page={page_num+1}, xref={xref}): {e}")
                     continue
 
-                # 保存图片
                 img_filename = f"{paper_id}_p{page_num+1}_fig{img_idx}.png"
                 img_path = os.path.join(self.output_dir, img_filename)
                 with open(img_path, "wb") as f:
                     f.write(img_bytes)
 
-                # 匹配图表标题
                 caption = self._find_caption(text_blocks, bbox)
 
                 all_figures.append({
@@ -166,7 +159,6 @@ class FigureExtractor:
             elif block_center_y > img_bbox[3] and abs(block_center_y - img_bbox[3]) < 80:
                 candidates.append(("below", block_text.strip(), block_center_y - img_bbox[3]))
 
-        # 先找 below（学术论文标题通常在图下方），再找 above
         for _, text, _ in sorted(candidates, key=lambda x: x[2]):
             if re.search(r"(Figure|Fig\.?|图|Table)\s*\d+", text, re.IGNORECASE):
                 return text.strip()
@@ -185,8 +177,7 @@ if __name__ == "__main__":
     from base.config import Config
 
     conf = Config()
-    # 使用 data/paper_data 目录下的 PDF 测试
-    data_dir = conf.DATA_DIR.replace("ai_data", "paper_data")
+    data_dir = os.path.join(conf.DATA_DIR, "paper_data")
     pdf_files = [f for f in os.listdir(data_dir) if f.endswith(".pdf")]
     if not pdf_files:
         print(f"请先将论文 PDF 放入 {data_dir}")

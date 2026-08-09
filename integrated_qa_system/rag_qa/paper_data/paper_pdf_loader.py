@@ -38,7 +38,6 @@ class PaperPDFLoader(BaseLoader):
         for i, page in enumerate(doc):
             b_unit.set_description(f"PaperPDFLoader page {i+1}/{doc.page_count}")
             b_unit.refresh()
-            # 直接提取内嵌文本（数字原生 PDF 不需要 OCR）
             text = page.get_text("text")
             if text:
                 resp += text + "\n"
@@ -55,7 +54,7 @@ if __name__ == "__main__":
     from base.config import Config
 
     conf = Config()
-    data_dir = conf.DATA_DIR.replace("ai_data", "paper_data")
+    data_dir = os.path.join(conf.DATA_DIR, "paper_data")
     pdf_files = [f for f in os.listdir(data_dir) if f.endswith(".pdf")]
     if pdf_files:
         pdf_path = os.path.join(data_dir, pdf_files[0])

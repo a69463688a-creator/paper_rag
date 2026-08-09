@@ -59,7 +59,7 @@ GREETING_PATTERNS = [
 
 class QueryRequest(BaseModel):
     query: str  # 查询内容，必填
-    source_filter: Optional[str] = None  # 学科过滤，可选
+    source_filter: Optional[str] = None  # 论文领域过滤，可选
     session_id: Optional[str] = None  # 会话 ID，可选
 
 class QueryResponse(BaseModel):
@@ -250,10 +250,10 @@ async def health_check():
     # 返回健康状态标记, k8s调用该接口返回200则判断服务正常运行.
     return {"status": "healthy"}  # 返回健康状态
 
-# 获取有效学科类别接口
+# 获取有效论文领域接口
 @app.get("/api/sources")
 async def get_sources():
-    return {"sources": qa_system.config.VALID_SOURCES}  # 返回学科类别列表
+    return {"sources": qa_system.config.VALID_SOURCES}
 
 
 # 主程序入口

@@ -107,7 +107,7 @@ def main(query_mode=True, directory_path="data"):
 
         valid_sources = conf.VALID_SOURCES
         print("\n欢迎使用 PaperRAG 交互式查询系统！")
-        print(f"支持的学科类别：{valid_sources}")
+        print(f"支持的论文领域：{valid_sources}")
         print("输入您的问题，或输入 'exit' 退出。")
 
         while True:
@@ -117,17 +117,17 @@ def main(query_mode=True, directory_path="data"):
                 print("再见！")
                 break
 
-            source_filter_input = input(f"请输入学科类别 ({'/'.join(valid_sources)}) (直接回车默认不过滤)：").strip()
+            source_filter_input = input(f"请输入论文领域 ({'/'.join(valid_sources)}) (直接回车默认不过滤)：").strip()
             source_filter = None # 默认不过滤
             if source_filter_input:
                 if source_filter_input in valid_sources:
                     source_filter = source_filter_input
-                    logger.info(f"用户选择了学科过滤: {source_filter}")
+                    logger.info(f"用户选择了领域过滤: {source_filter}")
                 else:
                     logger.warning(
-                        f"无效的学科类别 '{source_filter_input}'，将不过滤"
+                        f"无效的论文领域 '{source_filter_input}'，将不过滤"
                     )
-                    print(f"提示：输入的学科 '{source_filter_input}' 无效，将不过滤。")
+                    print(f"提示：输入的领域 '{source_filter_input}' 无效，将不过滤。")
 
 
             try:

@@ -10,21 +10,6 @@ config_file_path=os.path.join(project_root,'config.ini')
 
 class Config:
     def __init__(self,config_file=config_file_path):
-        # self.config=configparser.ConfigParser()
-        # self.config.read(config_file,encoding='utf-8')
-        #
-        # self.MYSQL_HOST=self.config.get('mysql','host',fallback='localhost')
-        # self.MYSQL_USER=self.config.get('mysql','user',fallback='root')
-        # self.MYSQL_PASSWORD=self.config.get('mysql','password',fallback='123456')
-        # self.MYSQL_DATABASE=self.config.get('mysql','database',fallback='paper_rag')
-        #
-        # self.REDIS_HOST=self.config.get('redis', 'host',fallback='localhost')
-        # self.REDIS_PORT=self.config.get('redis', 'port',fallback=6379)
-        # self.REDIS_PASSWORD=self.config.get('redis', 'password',fallback='1234')
-        # self.REDIS_DB=self.config.get('redis', 'db',fallback=0)
-        #
-        # self.LOG_FILE=self.config.get('logger','log_file',fallback='logs/app.log')
-        # 创建配置解析器，启用插值功能
         self.config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
         # 如果没有提供配置文件路径，则使用默认路径
 
@@ -33,7 +18,7 @@ class Config:
         self.LOG_DIR = os.path.join(self.PROJECT_ROOT, 'logs')
         self.DATA_DIR = os.path.join(self.PROJECT_ROOT, 'rag_qa/data')
         self.MODELS_DIR = os.path.join(self.PROJECT_ROOT, 'rag_qa/models')
-        self.EDU_DOCUMENT_LOADERS_DIR = os.path.join(self.PROJECT_ROOT, 'rag_qa/edu_document_loaders')
+        self.DOCUMENT_LOADERS_DIR = os.path.join(self.PROJECT_ROOT, 'rag_qa/document_loaders')
 
         if config_file is None:
             config_file = os.path.join(self.PROJECT_ROOT, 'config.ini')
@@ -98,7 +83,7 @@ class Config:
         # 应用配置
         # 有效来源列表
         self.VALID_SOURCES = eval(
-            self.config.get('app', 'valid_sources', fallback='["ai", "java", "test", "ops", "bigdata"]'))
+            self.config.get('app', 'valid_sources', fallback='["cs", "nlp", "cv", "ai"]'))
         # 客服电话
         self.CUSTOMER_SERVICE_PHONE = self.config.get('app', 'customer_service_phone', fallback='12345678')
 

@@ -1,7 +1,5 @@
 import sys,os
 
-from torch.backends.opt_einsum import strategy
-
 from langchain_core.documents import Document
 from rag_qa.core.prompts import RAGPrompts
 import time
@@ -157,7 +155,7 @@ class RAGSystem:
 
     def generate_answer(self,query,source_filter=None):
         start_time=time.time()
-        logger.info(f'开始处理查询{query},学科过滤:{source_filter}')
+        logger.info(f'开始处理查询: {query}, 领域过滤: {source_filter}')
         query_category=self.query_classifier.predict_category(query)
 
         # 关键词规则兜底
@@ -219,8 +217,6 @@ if __name__ == '__main__':
     vector_store=VectorStore()
     llm=StrategySelector().call_dashscope
     rag_system=RAGSystem(vector_store, llm)
-    answer=rag_system.generate_answer('原神是什么',source_filter='ai')
-    print(answer)
 
 
 

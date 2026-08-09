@@ -3,20 +3,20 @@ from langchain_community.document_loaders import TextLoader
 from langchain_community.document_loaders.markdown import UnstructuredMarkdownLoader
 from langchain_text_splitters import MarkdownTextSplitter, RecursiveCharacterTextSplitter
 from datetime import datetime
-from rag_qa.edu_text_spliter import ChineseRecursiveTextSplitter
-from rag_qa.edu_document_loaders import OCRIMGLoader
+from rag_qa.text_spliter import ChineseRecursiveTextSplitter
+from rag_qa.document_loaders import OCRIMGLoader
 
 # 论文 PDF 使用轻量加载器（无需 OCR），扫描件回退到 OCRPDFLoader
 from rag_qa.paper_data.paper_pdf_loader import PaperPDFLoader
 
 # 以下 loader 依赖 python-docx / python-pptx，仅在可用时导入
 try:
-    from rag_qa.edu_document_loaders.edu_docloader import OCRDOCLoader
+    from rag_qa.document_loaders.doc_loader import OCRDOCLoader
 except ImportError:
     OCRDOCLoader = None
 
 try:
-    from rag_qa.edu_document_loaders.edu_pptloader import OCRPPTLoader
+    from rag_qa.document_loaders.ppt_loader import OCRPPTLoader
 except ImportError:
     OCRPPTLoader = None
 
@@ -73,7 +73,7 @@ def load_documents_from_directory(directory_path):
                     loaded_docs = loader.load()
                     # print(loaded_docs)
                     for doc in loaded_docs:
-                        doc.metadata['source'] = source  # 学科
+                        doc.metadata['source'] = source  # 论文领域
                         doc.metadata['file_path'] = file_path
                         doc.metadata['timestamp'] = datetime.now().isoformat()
                     documents.extend(loaded_docs)

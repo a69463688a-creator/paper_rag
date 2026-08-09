@@ -9,7 +9,7 @@
 host = localhost
 user = root
 password = 请替换为你的MySQL密码
-database = subjects_kg
+database = paper_rag
 
 # Redis 配置
 [redis]
@@ -26,13 +26,13 @@ log_file = logs/app.log
 [milvus]
 host = localhost
 port = 19530
-database_name = itcast
-collection_name = edurag_final
+database_name = paper_rag
+collection_name = paper_rag
 
 
 # LLM 配置
 [llm]
-model = deepseek-chat
+model = deepseek-v4-pro
 dashscope_api_key = 请替换为你的API Key
 dashscope_base_url = https://api.deepseek.com
 
@@ -46,5 +46,5 @@ candidate_m = 2
 
 # 应用配置
 [app]
-valid_sources = ["ai", "java", "test", "ops", "bigdata"]
-customer_service_phone = 12345678
+valid_sources = ["cs", "nlp", "cv", "ai"]
+customer_service_phone =

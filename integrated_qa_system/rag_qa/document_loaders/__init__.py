@@ -6,25 +6,25 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from base.config import Config
 
 # 添加配置中的路径到 sys.path
-sys.path.append(Config().EDU_DOCUMENT_LOADERS_DIR)
+sys.path.append(Config().DOCUMENT_LOADERS_DIR)
 
 # 条件导入各个文档加载器，允许在缺少依赖时继续运行
 try:
-    from .edu_docloader import *
+    from .doc_loader import *
 except ImportError:
     pass
 
 try:
-    from .edu_pptloader import *
+    from .ppt_loader import *
 except ImportError:
     pass
 
 try:
-    from .edu_imgloader import *
+    from .img_loader import *
 except ImportError:
     pass
 
 try:
-    from .edu_pdfloader import *
+    from .pdf_loader import *
 except ImportError:
     pass

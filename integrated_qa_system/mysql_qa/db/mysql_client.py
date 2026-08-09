@@ -69,7 +69,7 @@ class MySQLClient:
             # print(data.head())
             for _ ,row in data.iterrows():
                 insert_query="insert into jpkb (subject_name,question,answer) values (%s,%s,%s)"
-                self.cursor.execute(insert_query,(row['学科名称'],row['问题'],row['答案']))
+                self.cursor.execute(insert_query,(row['subject_name'],row['question'],row['answer']))
             self.connection.commit()
             self.logger.info(f'MySQL table data successfully inserted')
 
@@ -111,7 +111,7 @@ class MySQLClient:
 if __name__ == '__main__':
     mysql_client = MySQLClient()
     # mysql_client.create_table()
-    # mysql_client.insert_data(csv_path='../data/JP学科知识问答.csv')
+    # mysql_client.insert_data(csv_path='../data/knowledge_qa.csv')
 
     # questions = mysql_client.fetch_questions()
     # print(questions)

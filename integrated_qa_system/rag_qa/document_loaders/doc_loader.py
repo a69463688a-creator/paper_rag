@@ -1,5 +1,5 @@
 from typing import Iterator
-from rag_qa.edu_document_loaders.edu_ocr import get_ocr
+from rag_qa.document_loaders.ocr import get_ocr
 # 导入必要的模块
 from tqdm import tqdm
 from docx.table import _Cell, Table  # 用于处理表格

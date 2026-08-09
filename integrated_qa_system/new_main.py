@@ -172,7 +172,7 @@ def main():
     session_id = str(uuid.uuid4())
     print("\n欢迎使用集成问答系统！")
     print(f"会话ID: {session_id}")
-    print(f"支持的学科类别：{qa_system.config.VALID_SOURCES}")
+    print(f"支持的论文领域：{qa_system.config.VALID_SOURCES}")
     print("输入查询进行问答，输入 'exit' 退出。")
     try:
         while True:
@@ -182,9 +182,9 @@ def main():
                 print("再见！")
                 break
             source_filter = input(
-                f"请输入学科类别 ({'/'.join(qa_system.config.VALID_SOURCES)}) (直接回车默认不过滤): ").strip()
+                f"请输入论文领域 ({'/'.join(qa_system.config.VALID_SOURCES)}) (直接回车默认不过滤): ").strip()
             if source_filter and source_filter not in qa_system.config.VALID_SOURCES:
-                logger.warning(f"无效的学科类别 '{source_filter}'，将不过滤")
+                logger.warning(f"无效的论文领域 '{source_filter}'，将不过滤")
                 source_filter = None
             print("\n答案: ", end="", flush=True)
             answer = ""

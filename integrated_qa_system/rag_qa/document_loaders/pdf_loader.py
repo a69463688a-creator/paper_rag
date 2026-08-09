@@ -13,7 +13,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 from typing import Iterator
-from rag_qa.edu_document_loaders.edu_ocr import get_ocr
+from rag_qa.document_loaders.ocr import get_ocr
 from langchain_core.documents import Document
 from langchain_core.document_loaders import BaseLoader
 from langchain_text_splitters import CharacterTextSplitter

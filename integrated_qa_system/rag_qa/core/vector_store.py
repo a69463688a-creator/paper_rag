@@ -91,7 +91,7 @@ class VectorStore:
             schema.add_field(field_name="parent_id", datatype=DataType.VARCHAR, max_length=100)
             # 添加父块内容字段，VARCHAR 类型，最大长度 65535
             schema.add_field(field_name="parent_content", datatype=DataType.VARCHAR, max_length=65535)
-            # 添加学科类别字段，VARCHAR 类型，最大长度 50
+            # 添加论文领域字段，VARCHAR 类型，最大长度 50
             schema.add_field(field_name="source", datatype=DataType.VARCHAR, max_length=50)
             # 添加时间戳字段，VARCHAR 类型，最大长度 50
             schema.add_field(field_name="timestamp", datatype=DataType.VARCHAR, max_length=50)
@@ -436,8 +436,8 @@ if __name__ == '__main__':
     # vector_store.add_documents(documents)
 
 
-    query='AI学科的课程内容是什么'
-    results=vector_store.hybrid_search_with_rerank(query,source_filter='ai')
+    query='Transformer 的自注意力机制是如何工作的'
+    results=vector_store.hybrid_search_with_rerank(query,source_filter='cs')
 
     print(results)
     print(len(results))

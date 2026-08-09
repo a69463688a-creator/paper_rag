@@ -1,182 +1,92 @@
 [
   {
-    "question": "人工智能就业课的课程版本是什么？",
-    "context": ["人工智能学科全新升级——人工智能开发V6.0课程。"],
-    "answer": "人工智能就业课的课程版本是V6.0。",
-    "ground_truth": "V6.0"
+    "question": "Transformer 模型的核心创新是什么？",
+    "context": ["The dominant sequence transduction models are based on complex recurrent or convolutional neural networks... We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely."],
+    "answer": "Transformer 的核心创新是完全基于注意力机制，摒弃了循环和卷积结构。",
+    "ground_truth": "完全基于注意力机制，摒弃循环和卷积结构。"
   },
   {
-    "question": "课程的一句话概括是什么？",
-    "context": ["解锁「大模型」 新技能成就「高薪AI」人才"],
-    "answer": "课程的一句话概括是：解锁「大模型」新技能成就「高薪AI」人才。",
-    "ground_truth": "解锁「大模型」新技能成就「高薪AI」人才。"
+    "question": "BERT 的预训练任务有哪些？",
+    "context": ["BERT uses two unsupervised tasks for pre-training: Masked Language Model (MLM) and Next Sentence Prediction (NSP)."],
+    "answer": "BERT 使用两个无监督任务进行预训练：掩码语言模型（MLM）和下一句预测（NSP）。",
+    "ground_truth": "掩码语言模型（MLM）和下一句预测（NSP）。"
   },
   {
-    "question": "课程优势有哪些？",
-    "context": ["课程优势\n\n优势一：热门岗位覆盖...\n优势二：与大厂深入合作...\n优势三：定制垂直行业大模型专项领域赋能...\n优势四：覆盖NLP、大模型解决方案和经典技术栈"],
-    "answer": "课程优势包括热门岗位覆盖、与大厂深入合作、定制垂直行业大模型、覆盖NLP和大模型解决方案。",
-    "ground_truth": "热门岗位覆盖、与大厂深入合作、定制垂直行业大模型、覆盖NLP和大模型解决方案。"
+    "question": "ResNet 如何解决深层网络的梯度消失问题？",
+    "context": ["We present a residual learning framework to ease the training of networks that are substantially deeper... The formulation F(x)+x can be realized by feedforward neural networks with 'shortcut connections'."],
+    "answer": "ResNet 通过引入残差学习和捷径连接（skip connections），使梯度可以直接流过恒等映射，从而解决梯度消失问题。",
+    "ground_truth": "残差学习和捷径连接（skip connections）。"
   },
   {
-    "question": "大模型方向的岗位职责是什么？",
-    "context": ["大模型方向：设计、实现和优化大规模深度学习模型，包括数据预处理、模型架构设计、训练调优、性能优化以及模型部署。"],
-    "answer": "大模型方向的岗位职责包括设计、实现和优化大规模深度学习模型，涉及数据预处理、模型架构设计、训练调优、性能优化和模型部署。",
-    "ground_truth": "设计、实现和优化大规模深度学习模型，包括数据预处理、模型架构设计、训练调优、性能优化和模型部署。"
+    "question": "GAN 由哪两个网络组成，它们的作用分别是什么？",
+    "context": ["Generative Adversarial Nets consist of two models: a generative model G that captures the data distribution, and a discriminative model D that estimates the probability that a sample came from the training data rather than G."],
+    "answer": "GAN 由生成器（Generator）和判别器（Discriminator）组成。生成器学习真实数据分布并生成假样本，判别器判断样本是真实的还是生成的。",
+    "ground_truth": "生成器（Generator）捕捉数据分布并生成样本，判别器（Discriminator）判断样本真伪。"
   },
   {
-    "question": "NLP方向的主要功能是什么？",
-    "context": ["自然语言处理(NLP)方向：通过处理和分析文本数据，实现语言翻译、情感分析、自动摘要、聊天机器人等功能。"],
-    "answer": "NLP方向通过处理和分析文本数据，实现语言翻译、情感分析、自动摘要、聊天机器人等功能。",
-    "ground_truth": "语言翻译、情感分析、自动摘要、聊天机器人。"
+    "question": "注意力机制中的 Q、K、V 分别代表什么？",
+    "context": ["An attention function can be described as mapping a query and a set of key-value pairs to an output... The output is computed as a weighted sum of the values, where the weight assigned to each value is computed by a compatibility function of the query with the corresponding key."],
+    "answer": "Q（Query）是要查询的信息，K（Key）是被匹配的索引，V（Value）是被聚合的内容。注意力机制通过 Q 和 K 计算相似度权重，再对 V 加权求和。",
+    "ground_truth": "Query（查询）、Key（键）、Value（值），通过 Q-K 计算权重，对 V 加权求和。"
   },
   {
-    "question": "课程与大厂合作有什么优势？",
-    "context": ["优势二：与大厂深入合作（共建大模型课程，助你掌握前沿技术，增强就业竞争力)"],
-    "answer": "与大厂深入合作可以共建大模型课程，帮助掌握前沿技术，增强就业竞争力。",
-    "ground_truth": "共建大模型课程，掌握前沿技术，增强就业竞争力。"
+    "question": "什么是迁移学习？在计算机视觉中如何应用？",
+    "context": ["Transfer learning is a machine learning method where a model developed for one task is reused as the starting point for a model on a second task. In computer vision, models pre-trained on ImageNet are commonly fine-tuned for downstream tasks."],
+    "answer": "迁移学习是将一个任务上学到的知识迁移到另一个相关任务的方法。在计算机视觉中，常用 ImageNet 预训练模型在下游任务上微调。",
+    "ground_truth": "将预训练模型的知识迁移到新任务，CV 中常用 ImageNet 预训练模型微调。"
   },
   {
-    "question": "课程新增了哪些技术？",
-    "context": ["d 课程新增技术\n\n新增：大模型开发基础与项目\n\n升级：机器学习\n\n升级：自然语言处理项目1\n\n升级：自然语言处理项目"],
-    "answer": "课程新增了大模型开发基础与项目，并升级了机器学习、自然语言处理项目1和自然语言处理项目。",
-    "ground_truth": "大模型开发基础与项目、机器学习、自然语言处理项目1、自然语言处理项目。"
+    "question": "Layer Normalization 和 Batch Normalization 的区别是什么？",
+    "context": ["Layer Normalization computes the mean and variance used for normalization from all of the summed inputs to the neurons in a layer on a single training case. Unlike Batch Normalization, LayerNorm does not impose any restriction on the size of a mini-batch and can be used in the pure online regime."],
+    "answer": "LayerNorm 对单样本的所有特征做归一化，不依赖 batch 大小，适合 RNN/Transformer。BatchNorm 对一个 batch 内所有样本的同一特征做归一化，依赖 batch 大小。",
+    "ground_truth": "LayerNorm 对单样本所有特征归一化（适合序列模型），BatchNorm 对 batch 内每个特征归一化（依赖 batch size）。"
   },
   {
-    "question": "赠送内容包括哪些？",
-    "context": ["赠送内容一：图像分析基础\n\n赠送内容二：多模态大模型综合项目"],
-    "answer": "赠送内容包括图像分析基础和多模态大模型综合项目。",
-    "ground_truth": "图像分析基础、多模态大模型综合项目。"
+    "question": "Vision Transformer (ViT) 如何将图像转换为序列输入？",
+    "context": ["We split an image into fixed-size patches, linearly embed each of them, add position embeddings, and feed the resulting sequence of vectors to a standard Transformer encoder."],
+    "answer": "ViT 将图像切分为固定大小的 patches，对每个 patch 做线性投影得到 patch embedding，加上位置编码后输入 Transformer 编码器。",
+    "ground_truth": "图像切分为 patches → 线性投影 → 加位置编码 → 输入 Transformer。"
   },
   {
-    "question": "大模型语言基础阶段可以解决什么现实问题？",
-    "context": ["第一部分：大模型语言基础\n\n可解决的现实问题：\n\n熟练掌握人工智能Python语言，建立编程思维，使学员能够熟练使用Python技术完成基础程序编写。"],
-    "answer": "大模型语言基础阶段可以帮助学员熟练掌握Python语言，建立编程思维，完成基础程序编写。",
-    "ground_truth": "熟练掌握人工智能Python语言，建立编程思维，完成基础程序编写。"
+    "question": "什么是对比学习（Contrastive Learning）？SimCLR 的核心思想是什么？",
+    "context": ["SimCLR learns representations by maximizing agreement between differently augmented views of the same data example via a contrastive loss in the latent space."],
+    "answer": "对比学习通过拉近同一数据的不同增强视图在隐空间中的距离，同时推远不同数据的表示来学习特征。SimCLR 使用大的 batch size 和多种数据增强来实现这一点。",
+    "ground_truth": "最大化同一样本不同增强视图的一致性，拉近正样本对、推远负样本对。"
   },
   {
-    "question": "Python基础模块包含哪些技术要点？",
-    "context": ["模块 技术要点 计算机原理与Python 基础 入门 1.变量2.注释3.标识符和关键字 4.输入输出5.数据类型转换"],
-    "answer": "Python基础模块包含变量、注释、标识符和关键字、输入输出、数据类型转换等技术要点。",
-    "ground_truth": "变量、注释、标识符和关键字、输入输出、数据类型转换。"
+    "question": "LSTM 中的遗忘门、输入门和输出门分别起什么作用？",
+    "context": ["LSTM uses three gates: the forget gate decides what information to discard from the cell state, the input gate decides which values to update, and the output gate determines what to output based on the cell state."],
+    "answer": "遗忘门决定丢弃哪些旧信息，输入门决定添加哪些新信息，输出门决定基于当前细胞状态输出什么信息。",
+    "ground_truth": "遗忘门（丢弃旧信息）、输入门（添加新信息）、输出门（决定输出）。"
   },
   {
-    "question": "Python判断语句模块的技术要点是什么？",
-    "context": ["Python判断语句 1.if判断语句语法格式 2.比较/关系运算符"],
-    "answer": "Python判断语句模块的技术要点包括if判断语句语法格式和比较/关系运算符。",
-    "ground_truth": "if判断语句语法格式、比较/关系运算符。"
+    "question": "深度学习中过拟合的表现及常见解决方法？",
+    "context": ["Overfitting occurs when a model learns the training data too well, including its noise and outliers, resulting in poor generalization. Common solutions include regularization (L1/L2), dropout, data augmentation, early stopping, and reducing model complexity."],
+    "answer": "过拟合表现为训练集效果好但测试集效果差。解决方法包括：正则化（L1/L2）、Dropout、数据增强、早停、降低模型复杂度、增加训练数据等。",
+    "ground_truth": "训练集效果好但测试集差。解决：正则化、Dropout、数据增强、早停、简化模型。"
   },
   {
-    "question": "循环进阶与字符串容器模块包含哪些内容？",
-    "context": ["循环进阶与字符串容器 1.while语句语法格式2.while 循环嵌套 3.break 和 continue4.while 循环案例 5.for循环6.字符串定义语法格式 7.字符串遍历8.下标和切片9.字符串常见操作"],
-    "answer": "循环进阶与字符串容器模块包含while语句、while循环嵌套、break和continue、for循环、字符串定义、遍历、下标和切片等内容。",
-    "ground_truth": "while语句语法格式、while循环嵌套、break和continue、while循环案例、for循环、字符串定义语法格式、字符串遍历、下标和切片、字符串常见操作。"
+    "question": "知识蒸馏（Knowledge Distillation）的原理是什么？",
+    "context": ["Knowledge distillation transfers knowledge from a large teacher model to a smaller student model by training the student to match the soft targets (softened output probabilities) produced by the teacher."],
+    "answer": "知识蒸馏通过让小型学生模型学习大型教师模型输出的软目标（软化后的概率分布），将知识从大模型迁移到小模型。",
+    "ground_truth": "学生模型学习教师模型的软输出概率分布，压缩知识到小模型。"
   },
   {
-    "question": "Python容器模块的技术要点有哪些？",
-    "context": ["Python容器 1.列表语法格式2.列表的遍历3.列表常见操作 4.列表嵌套5.列表推导式6.元组语法格式7.元组操作 8.字典语法格式9.字典常见操作10.字典的遍历"],
-    "answer": "Python容器模块的技术要点包括列表语法、遍历、常见操作、嵌套、推导式，元组语法和操作，字典语法、操作和遍历。",
-    "ground_truth": "列表语法格式、列表遍历、列表常见操作、列表嵌套、列表推导式、元组语法格式、元组操作、字典语法格式、字典常见操作、字典遍历。"
+    "question": "MoE（Mixture of Experts）架构的核心思想是什么？",
+    "context": ["Mixture of Experts replaces the dense FFN layers with sparse expert layers. A gating network routes each token to the top-k experts, allowing the model to scale parameters while keeping computation roughly constant."],
+    "answer": "MoE 用多个专家网络替代密集前馈层，通过门控网络将每个 token 路由到 top-k 个专家。参数总量可大幅增加但计算量基本不变。",
+    "ground_truth": "稀疏专家网络 + 门控路由，参数增加但计算量不变。"
   },
   {
-    "question": "Python函数模块的核心内容是什么？",
-    "context": ["Python函数 1.函数概念和作用、函数定义、调用 2.函数的参数3.函数的返回值4.函数的注释 5.函数的嵌套调用6.可变和不可变类型7.局部变量 8.全局变量9.组包和拆包、引用"],
-    "answer": "Python函数模块的核心内容包括函数定义、调用、参数、返回值、注释、嵌套调用、可变和不可变类型、局部和全局变量、组包拆包及引用。",
-    "ground_truth": "函数概念和作用、函数定义、调用、函数参数、返回值、注释、嵌套调用、可变和不可变类型、局部变量、全局变量、组包和拆包、引用。"
+    "question": "多模态大模型 CLIP 的训练方法是什么？",
+    "context": ["CLIP jointly trains an image encoder and a text encoder to predict the correct pairings of a batch of (image, text) training examples. It learns a multi-modal embedding space by contrastive learning on 400M image-text pairs."],
+    "answer": "CLIP 联合训练图像编码器和文本编码器，通过对比学习在 4 亿图文对上学习匹配的图像-文本对，实现多模态对齐。",
+    "ground_truth": "双编码器 + 对比学习 + 大规模图文对训练，实现图文对齐。"
   },
   {
-    "question": "Python文件操作模块的技术要点是什么？",
-    "context": ["Python文件操作 1.文件的打开与关闭、文件的读写 2.文件、目录操作及案例 3.os 模块文件与目录相关操作"],
-    "answer": "Python文件操作模块的技术要点包括文件的打开与关闭、读写，文件和目录操作，以及os模块相关操作。",
-    "ground_truth": "文件的打开与关闭、文件的读写、文件和目录操作及案例、os模块文件与目录相关操作。"
-  },
-  {
-    "question": "Python异常处理模块包含哪些内容？",
-    "context": ["Python异常、模块与包 1.异常概念2.异常捕获3.异常的传递4.模块介绍 5.模块的导入6.包的概念7.包的导入8.模块中的__all_ 9.模块中_name_"],
-    "answer": "Python异常处理模块包含异常概念、捕获、传递，模块和包的导入，以及__all_和_name_的使用。",
-    "ground_truth": "异常概念、异常捕获、异常传递、模块介绍、模块导入、包的概念、包的导入、模块中的__all_、模块中的_name_。"
-  },
-  {
-    "question": "聊天机器人实战项目使用了哪些框架？",
-    "context": ["本项目结合了Streamlit和LangChain，构建了一个具备上下文记忆和复杂任务处理能力的智能聊天机器人。"],
-    "answer": "聊天机器人实战项目使用了Streamlit和LangChain框架。",
-    "ground_truth": "Streamlit和LangChain。"
-  },
-  {
-    "question": "Streamlit在聊天机器人项目中的作用是什么？",
-    "context": ["Streamlit提供了简洁易用的界面...基于Streamlit完成chatgpt界面设计"],
-    "answer": "Streamlit在聊天机器人项目中用于提供简洁易用的界面设计。",
-    "ground_truth": "提供简洁易用的界面设计。"
-  },
-  {
-    "question": "LangChain在聊天机器人项目中的作用是什么？",
-    "context": ["LangChain 负责对话逻辑和任务链执行，支持定制化对话流程和知识库查询。"],
-    "answer": "LangChain在聊天机器人项目中负责对话逻辑和任务链执行，支持定制化对话流程和知识库查询。",
-    "ground_truth": "负责对话逻辑和任务链执行，支持定制化对话流程和知识库查询。"
-  },
-  {
-    "question": "聊天机器人项目可以应用于哪些场景？",
-    "context": ["项目适用于客户服务、学习助手、知识管理等多种场景，具备快速开发、高度可定制和强扩展性的优势。"],
-    "answer": "聊天机器人项目可以应用于客户服务、学习助手、知识管理等场景。",
-    "ground_truth": "客户服务、学习助手、知识管理。"
-  },
-  {
-    "question": "NLP自然语言处理基础阶段在课程中的第几部分？",
-    "context": ["第六阶段：NLP自然语言处理基础"],
-    "answer": "NLP自然语言处理基础阶段是课程的第六部分。",
-    "ground_truth": "第六部分"
-  },
-  {
-    "question": "自然语言处理项目1在课程中的位置是？",
-    "context": ["第七部分：自然语言处理项目1"],
-    "answer": "自然语言处理项目1是课程的第七部分。",
-    "ground_truth": "第七部分"
-  },
-  {
-    "question": "大模型开发基础与项目在课程中的位置是？",
-    "context": ["第九部分：大模型开发基础与项目"],
-    "answer": "大模型开发基础与项目是课程的第九部分。",
-    "ground_truth": "第九部分"
-  },
-  {
-    "question": "课程的整体内容目录包含哪些部分？",
-    "context": ["整体内容目录：\n\n第一部分：大模型语言基础\n\n第二部分：大模型语言进阶\n\n第三部分：数据处理与统计分析\n\n第四阶段：机器学习\n\n第五阶段：深度学习基础\n\n第六阶段：NLP自然语言处理基础\n\n第七部分：自然语言处理项目1\n\n第八部分：自然语言处理项目2\n\n第九部分：大模型开发基础与项目"],
-    "answer": "课程内容目录包括大模型语言基础、进阶、数据处理与统计分析、机器学习、深度学习基础、NLP基础、NLP项目1、NLP项目2、大模型开发基础与项目。",
-    "ground_truth": "大模型语言基础、大模型语言进阶、数据处理与统计分析、机器学习、深度学习基础、NLP自然语言处理基础、自然语言处理项目1、自然语言处理项目2、大模型开发基础与项目。"
-  },
-  {
-    "question": "大模型语言基础阶段的核心竞争力是什么？",
-    "context": ["可掌握的核心竞争力：\n\n1．掌握Python开发环境基本配置\n\n2．掌握运算符、表达式、流程控制语句、容器等的使用\n\n3．掌握字符串的基本操作\n\n4．掌握函数的定义及使用\n\n5．熟悉异常捕获的基本流程及使用方式"],
-    "answer": "大模型语言基础阶段的核心竞争力包括掌握Python开发环境配置、运算符、表达式、流程控制语句、容器、字符串操作、函数定义和使用，以及异常捕获。",
-    "ground_truth": "掌握Python开发环境基本配置、运算符、表达式、流程控制语句、容器等的使用、字符串的基本操作、函数的定义及使用、熟悉异常捕获的基本流程及使用方式。"
-  },
-  {
-    "question": "聊天机器人项目的核心竞争力有哪些？",
-    "context": ["可掌握的核心竞争力：\n\n1．了解Streamlit作用及Streamlit框架的安装\n\n2．能够基于Streamlit完成chatgpt界面设计\n\n3．了解 LangChain 框架的作用及 LangChain 框架组成\n\n4. 能够基于LangChain完成通义模型调用\n\n5．能够基于LangChain $.+$ Streamlit完成chatgpt机器人案例开发"],
-    "answer": "聊天机器人项目的核心竞争力包括了解Streamlit作用及安装、基于Streamlit设计界面、了解LangChain框架、基于LangChain调用通义模型、结合LangChain和Streamlit开发聊天机器人。",
-    "ground_truth": "了解Streamlit作用及Streamlit框架的安装、基于Streamlit完成chatgpt界面设计、了解LangChain框架的作用及组成、基于LangChain完成通义模型调用、基于LangChain和Streamlit完成chatgpt机器人案例开发。"
-  },
-  {
-    "question": "课程为什么适合AI行业入门者？",
-    "context": ["随着大模型时代的到来，人工智能技术和应用发展越来越快，但是以往的人工智能开发门槛高、入门难，为了帮助梦想进入人工智能行业的学生找到更适宜的入门途径，人工智能学科全新升级——人工智能开发V6.0课程。"],
-    "answer": "课程适合AI行业入门者，因为它针对人工智能开发门槛高、入门难的问题进行了全新升级，推出了V6.0课程，提供更适宜的入门途径。",
-    "ground_truth": "针对人工智能开发门槛高、入门难的问题，推出全新升级的V6.0课程，提供更适宜的入门途径。"
-  },
-  {
-    "question": "课程如何帮助学员成为大模型应用开发人才？",
-    "context": ["学习人工智能开发，以机器学习技术栈完成数据挖掘任务，以深度学习技术栈完成NLP 自然语言处理与大模型开发任务，成为懂 AI、能实战的大模型应用开发人才。"],
-    "answer": "课程通过机器学习技术栈完成数据挖掘任务，深度学习技术栈完成NLP和大模型开发任务，帮助学员成为懂AI、能实战的大模型应用开发人才。",
-    "ground_truth": "通过机器学习技术栈完成数据挖掘任务，深度学习技术栈完成NLP和大模型开发任务，成为懂AI、能实战的大模型应用开发人才。"
-  },
-  {
-    "question": "机器学习在课程中的位置是？",
-    "context": ["第四阶段：机器学习"],
-    "answer": "机器学习是课程的第四部分。",
-    "ground_truth": "第四部分"
-  },
-  {
-    "question": "深度学习基础在课程中的位置是？",
-    "context": ["第五阶段：深度学习基础"],
-    "answer": "深度学习基础是课程的第五部分。",
-    "ground_truth": "第五部分"
+    "question": "强化学习中 Policy Gradient 方法的基本原理？",
+    "context": ["Policy gradient methods optimize the policy directly by estimating the gradient of the expected reward with respect to the policy parameters, without requiring a value function."],
+    "answer": "策略梯度方法直接优化策略函数，通过估计期望奖励对策略参数的梯度来更新策略，使好行为概率增大、坏行为概率减小。",
+    "ground_truth": "直接对策略参数求期望奖励的梯度，增大好动作概率。"
   }
 ]

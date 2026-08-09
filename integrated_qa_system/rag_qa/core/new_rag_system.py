@@ -1,7 +1,5 @@
 import sys,os
 
-from torch.backends.opt_einsum import strategy
-
 from langchain_core.documents import Document
 from rag_qa.core.prompts import RAGPrompts
 import time
@@ -106,11 +104,12 @@ class RAGSystem:
 
     def retrieve_and_merge(self, query,source_filter=None,strategy=None):
         """
-        统一入口
-        :param query:
-        :param source_filter:
-        :param strategy:
-        :return:
+        多策略检索 + 三路结果合并（文本 + 图表 + 表格）
+
+        :param query: 用户查询
+        :param source_filter: 论文领域过滤（如 cs / nlp）
+        :param strategy: 检索策略，为空则自动选择
+        :return: 合并后的候选文档列表
         """
         if not strategy:
             strategy = self.strategy_selector.select_strategy(query)
@@ -163,7 +162,7 @@ class RAGSystem:
 
     def generate_answer(self,query,source_filter=None,history=None):
         start_time = time.time()
-        logger.info(f"开始处理查询: '{query}', 学科过滤: {source_filter}")
+        logger.info(f"开始处理查询: '{query}', 领域过滤: {source_filter}")
 
         if history is not None and not isinstance(history, list):
             logger.warning(f"无效的历史格式: {type(history)}，忽略历史")

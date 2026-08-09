@@ -136,7 +136,6 @@ class ArxivFetcher:
                 if link.attrib.get("title") == "pdf":
                     pdf_url = link.attrib.get("href", "")
                     break
-            # 如果没有 title="pdf" 的链接，回退到构造 URL
             if not pdf_url and paper.get("arxiv_id"):
                 pdf_url = f"https://arxiv.org/pdf/{paper['arxiv_id']}"
             paper["pdf_url"] = pdf_url
@@ -179,9 +178,6 @@ class ArxivFetcher:
         if output_dir is None:
             output_dir = self.data_dir
 
-        # 按分类建子目录：取 arxiv_id 前缀推断
-        # 例如 1706.03762 → 直接放根目录
-        # 保持简洁，全部放在 paper_data 根目录
         os.makedirs(output_dir, exist_ok=True)
 
         filename = f"{arxiv_id}.pdf"
@@ -196,7 +192,6 @@ class ArxivFetcher:
         logger.info(f"下载论文: {arxiv_id} -> {filepath}")
 
         try:
-            # arXiv PDF 下载需要设置 User-Agent
             req = urllib.request.Request(
                 pdf_url,
                 headers={"User-Agent": "PaperRAG/1.0 (Academic Research Assistant)"},
@@ -234,7 +229,6 @@ class ArxivFetcher:
 
 
 if __name__ == "__main__":
-    # 测试 arXiv 搜索
     fetcher = ArxivFetcher()
     results = fetcher.search("ti:transformer AND ti:attention", max_results=3)
 

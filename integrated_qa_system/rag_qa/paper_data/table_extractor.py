@@ -56,7 +56,6 @@ class TableExtractor:
         paper_id = self._paper_id_from_path(pdf_path)
         all_tables = []
 
-        # 方案一：pdfplumber 提取内嵌文本表格
         try:
             embedded_tables = self._extract_embedded_tables(pdf_path, paper_id)
             all_tables.extend(embedded_tables)
@@ -90,18 +89,14 @@ class TableExtractor:
                 page_tables = page.extract_tables()
                 for tbl_idx, table_data in enumerate(page_tables):
                     if not table_data or len(table_data) < 2:
-                        continue  # 跳过空表或只有表头的表
+                        continue
 
-                    # 清洗数据：替换 None 为空字符串
                     cleaned = [
                         [cell if cell is not None else "" for cell in row]
                         for row in table_data
                     ]
 
-                    # 转为 Markdown 表格
                     markdown = self._to_markdown(cleaned)
-
-                    # 生成唯一 ID
                     table_hash = hashlib.md5(
                         json.dumps(cleaned, ensure_ascii=False).encode()
                     ).hexdigest()[:16]
@@ -134,7 +129,6 @@ class TableExtractor:
         engine = PPStructure(show_log=False, lang="en")
         tables = []
 
-        # 将 PDF 逐页转为图片后识别
         import fitz
         doc = fitz.open(pdf_path)
         for page_num, page in enumerate(doc):
@@ -190,7 +184,6 @@ class TableExtractor:
         :param html: HTML 表格字符串
         :return: Markdown 表格
         """
-        # 使用 Pandas 转换（如果可用）
         try:
             import pandas as pd
             dfs = pd.read_html(html)
@@ -215,7 +208,7 @@ if __name__ == "__main__":
     from base.config import Config
 
     conf = Config()
-    data_dir = conf.DATA_DIR.replace("ai_data", "paper_data")
+    data_dir = os.path.join(conf.DATA_DIR, "paper_data")
     pdf_files = [f for f in os.listdir(data_dir) if f.endswith(".pdf")]
     if not pdf_files:
         print(f"请先将论文 PDF 放入 {data_dir}")
