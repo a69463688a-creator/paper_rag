@@ -1,0 +1,222 @@
+{
+  "metric": "paper_hit_rate",
+  "metrics_detail": {
+    "hit1": "Hit@1 — expected paper is top-1 result",
+    "hitK": "Hit@K — expected paper is in top-K results",
+    "mrr": "Mean Reciprocal Rank of expected paper",
+    "composite": "0.3*Hit@1 + 0.3*Hit@K + 0.4*MRR"
+  },
+  "grid": {
+    "dense_weight": [
+      0.1,
+      0.3,
+      0.5,
+      0.7,
+      0.9,
+      1.0
+    ],
+    "sparse_weight": [
+      0.1,
+      0.3,
+      0.5,
+      0.7,
+      1.0
+    ]
+  },
+  "k": 6,
+  "num_queries": 20,
+  "num_combinations": 30,
+  "scores": {
+    "dw=0.1_sw=0.1": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=0.3_sw=0.1": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=0.3_sw=0.3": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=0.5_sw=0.1": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=0.5_sw=0.3": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=0.5_sw=0.5": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=0.7_sw=0.1": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=0.7_sw=0.3": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=0.7_sw=0.5": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=0.7_sw=0.7": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=0.9_sw=0.1": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=0.9_sw=0.3": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=0.9_sw=0.5": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=0.9_sw=0.7": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=0.9_sw=1.0": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=1.0_sw=0.1": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=1.0_sw=0.3": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=1.0_sw=0.5": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=1.0_sw=0.7": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=1.0_sw=1.0": {
+      "hit1": 0.8,
+      "hitK": 0.9,
+      "mrr": 0.85,
+      "composite": 0.85
+    },
+    "dw=0.1_sw=0.3": {
+      "hit1": 0.8,
+      "hitK": 0.85,
+      "mrr": 0.825,
+      "composite": 0.825
+    },
+    "dw=0.1_sw=0.5": {
+      "hit1": 0.8,
+      "hitK": 0.85,
+      "mrr": 0.825,
+      "composite": 0.825
+    },
+    "dw=0.1_sw=0.7": {
+      "hit1": 0.8,
+      "hitK": 0.85,
+      "mrr": 0.825,
+      "composite": 0.825
+    },
+    "dw=0.1_sw=1.0": {
+      "hit1": 0.8,
+      "hitK": 0.85,
+      "mrr": 0.825,
+      "composite": 0.825
+    },
+    "dw=0.3_sw=0.5": {
+      "hit1": 0.8,
+      "hitK": 0.85,
+      "mrr": 0.825,
+      "composite": 0.825
+    },
+    "dw=0.3_sw=0.7": {
+      "hit1": 0.8,
+      "hitK": 0.85,
+      "mrr": 0.825,
+      "composite": 0.825
+    },
+    "dw=0.3_sw=1.0": {
+      "hit1": 0.8,
+      "hitK": 0.85,
+      "mrr": 0.825,
+      "composite": 0.825
+    },
+    "dw=0.5_sw=0.7": {
+      "hit1": 0.8,
+      "hitK": 0.85,
+      "mrr": 0.825,
+      "composite": 0.825
+    },
+    "dw=0.5_sw=1.0": {
+      "hit1": 0.8,
+      "hitK": 0.85,
+      "mrr": 0.825,
+      "composite": 0.825
+    },
+    "dw=0.7_sw=1.0": {
+      "hit1": 0.8,
+      "hitK": 0.85,
+      "mrr": 0.825,
+      "composite": 0.825
+    }
+  },
+  "best": {
+    "dense_weight": 0.1,
+    "sparse_weight": 0.1,
+    "hit1": 0.8,
+    "hitK": 0.9,
+    "mrr": 0.85,
+    "composite": 0.85
+  },
+  "search_time_s": 182.9,
+  "eval_time_s": 0.0,
+  "total_time_s": 182.9
+}

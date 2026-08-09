@@ -399,8 +399,64 @@ class VectorStore:
             ranked_parent_docs=[]
         return ranked_parent_docs[:conf.CANDIDATE_M]
 
+    def hybrid_search_with_custom_weights(self, query, k=conf.RETRIEVAL_K, dense_weight=0.7, sparse_weight=1.0, source_filter=None):
+        """
+        与 hybrid_search_with_rerank 相同，但支持自定义 dense/sparse 权重
+        用于网格搜索最优权重参数
 
+        :param query: 查询文本
+        :param k: topk 子块
+        :param dense_weight: 稠密向量权重
+        :param sparse_weight: 稀疏向量权重
+        :param source_filter: 论文领域过滤
+        :return: topm 父块
+        """
+        query_embeddings = self.embedding_function([query])
+        dense_query_vector = query_embeddings["dense"][0]
+        sparse_query_vector = {}
+        row = query_embeddings["sparse"][[0]]
+        for idx, value in zip(row.indices, row.data):
+            sparse_query_vector[idx] = value
 
+        filter_expr = f"source=='{source_filter}'" if source_filter else ""
+
+        dense_request = AnnSearchRequest(
+            data=[dense_query_vector],
+            anns_field="dense_vector",
+            param={'metric_type': 'IP', 'params': {"nprobe": 10}},
+            limit=k,
+            expr=filter_expr
+        )
+        sparse_request = AnnSearchRequest(
+            data=[sparse_query_vector],
+            anns_field="sparse_vector",
+            param={'metric_type': 'IP', 'params': {}},
+            limit=k,
+            expr=filter_expr
+        )
+
+        ranker = WeightedRanker(dense_weight, sparse_weight)
+        results = self.client.hybrid_search(
+            collection_name=self.collection_name,
+            reqs=[dense_request, sparse_request],
+            ranker=ranker,
+            limit=k,
+            output_fields=["text", "parent_id", "parent_content", "source", "paper_id", "timestamp"]
+        )[0]
+
+        sub_chunks = [self._doc_form_hit(hit["entity"]) for hit in results]
+        parent_docs = self._get_unique_parent_docs(sub_chunks)
+
+        if len(parent_docs) < 2:
+            return parent_docs[:conf.CANDIDATE_M]
+
+        if parent_docs:
+            pairs = [[query, doc.page_content] for doc in parent_docs]
+            scores = self.reranker.predict(pairs)
+            ranked_parent_docs = [doc for _, doc in sorted(zip(scores, parent_docs), key=lambda x: x[0], reverse=True)]
+        else:
+            ranked_parent_docs = []
+        return ranked_parent_docs[:conf.CANDIDATE_M]
 
     def _get_unique_parent_docs(self,sub_chunks):
         parent_contents=set()
