@@ -75,6 +75,8 @@ def load_documents_from_directory(directory_path):
                     for doc in loaded_docs:
                         doc.metadata['source'] = source  # 论文领域
                         doc.metadata['file_path'] = file_path
+                        # 从文件名提取论文 ID（arXiv ID），如 "1706.03762.pdf" → "1706.03762"
+                        doc.metadata['paper_id'] = os.path.splitext(os.path.basename(file_path))[0]
                         doc.metadata['timestamp'] = datetime.now().isoformat()
                     documents.extend(loaded_docs)
                     logger.info(f'成功加载文件:{file_path}')

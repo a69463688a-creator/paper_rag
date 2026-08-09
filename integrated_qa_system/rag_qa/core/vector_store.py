@@ -313,6 +313,7 @@ class VectorStore:
                 "parent_id": doc.metadata["parent_id"],
                 "parent_content": doc.metadata["parent_content"],
                 "source": doc.metadata.get("source", "unknown"),
+                "paper_id": doc.metadata.get("paper_id", ""),
                 "timestamp": doc.metadata.get("timestamp", "unknown")
             })
 
@@ -372,7 +373,7 @@ class VectorStore:
             reqs=[dense_request, sparse_request],
             ranker=ranker,
             limit=k,
-            output_fields=["text", "parent_id", "parent_content", "source", "timestamp"]
+            output_fields=["text", "parent_id", "parent_content", "source", "paper_id", "timestamp"]
         )[0]
         # print(results)
         # print(type(results))
@@ -418,6 +419,7 @@ class VectorStore:
                 'parent_id': hit.get('parent_id'),
                 'parent_content': hit.get('parent_content'),
                 'source': hit.get('source'),
+                'paper_id': hit.get('paper_id', ''),
                 'timestamp': hit.get('timestamp')
             }
         )
