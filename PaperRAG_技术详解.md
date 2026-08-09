@@ -11,7 +11,7 @@
 | **项目定位** | 基于 RAG 的学术论文智能问答系统，支持论文检索、对比分析、图表问答 |
 | **技术栈** | Python / PyTorch / FastAPI / Milvus / MySQL / Redis / Docker / LangChain |
 | **核心能力** | 多策略检索、三路召回（文本+图表+表格）、BERT 意图分类、流式生成 |
-| **数据规模** | 19 篇经典 arXiv 论文 → 1,403 文本块 + 69 图表 + 97 表格 |
+| **数据规模** | 19 篇经典 arXiv 论文 → 1,033 文本块 (283 父块) + 69 图表 + 97 表格 |
 | **硬件环境** | NVIDIA RTX 5070 (Blackwell sm_120, CUDA 12.8) / 本地 GPU 推理 |
 
 ---
@@ -68,12 +68,12 @@
     └─▶ 子查询3: "Transformer vs LSTM 对比"                  │
     │                                                     │
     ▼                                                     │
-[三路召回合并] 文本(2篇) + 图表(1张) + 表格(1个)              │
-    │                                                     │
-    ▼                                                     │
-[BGE-Reranker 重排序] top-2 上下文                           │
-    │                                                     │
-    ▼                                                     │
+[三路召回合并] 文本 + 图表 + 表格 → 配额保底 + 统一重排 → top-5 上下文
+    │
+    ▼
+[BGE-Reranker 统一重排序] Cross-Encoder 跨模态公平打分
+    │
+    ▼
 [DeepSeek 生成] + 引用标注 ──▶ WebSocket 流式逐 token 推送  ◀─┘
 ```
 
@@ -135,8 +135,8 @@ BGE-Reranker-Large (Cross-Encoder) → 精排 → top-M 最终上下文
 
 | 参数 | 值 | 说明 |
 |------|-----|------|
-| Parent chunk size | 1,200 | 大粒度保留上下文完整性 |
-| Child chunk size | 300 | 小粒度提升检索精度 |
+| Parent chunk size | 1,800 | 大粒度保留上下文完整性（优化后，原 1,200） |
+| Child chunk size | 400 | 小粒度提升检索精度（优化后，原 300） |
 | Chunk overlap | 50 | 跨块信息不丢失 |
 | 英文分块器 | `RecursiveCharacterTextSplitter` (tiktoken, cl100k_base) | 按 `\n\n` / `\n` / `. ` 递归切分 |
 | 中文分块器 | `ChineseRecursiveTextSplitter` (自研) | 中文语义边界切分 |
@@ -148,11 +148,26 @@ BGE-Reranker-Large (Cross-Encoder) → 精排 → top-M 最终上下文
 
 | 通道 | Collection | 数据量 | Embedding | 检索方式 |
 |------|-----------|--------|-----------|---------|
-| **文本** | `paper_rag` | 1,403 块 | BGE-M3 dense + sparse | 混合检索 + Reranker |
+| **文本** | `paper_rag` | 1,033 块 (283 父块) | BGE-M3 dense + sparse | 混合检索 + Reranker |
 | **图表** | `paper_rag_figures` | 69 张 | BGE-M3 dense (caption+description) | ANN (IP, nprobe=10) |
 | **表格** | `paper_rag_tables` | 97 个 | BGE-M3 dense (markdown) | ANN (IP, nprobe=10) |
 
-**合并策略**：文本检索 top-K(默认3) + 图表检索 top-2 + 表格检索 top-2 → 去重 → Reranker 精排 → 取 top-M(默认2) 作为最终上下文。图表/表格 fallback 设计，任一通道异常不影响主流程。
+**合并策略（方案C — 配额保底 + 统一重排）**：
+
+```
+文本 top-K(6) → Reranker 预排 → 进竞争池
+图表 top-1 ──────────────────→ 保底入围（不入围则让给文本）
+表格 top-1 ──────────────────→ 保底入围（不入围则让给文本）
+额外图表 + 额外表格 ──────────→ 进竞争池
+
+竞争池 → Cross-Encoder 统一打分 → 填满剩余槽位 → 全局 top-5
+```
+
+**设计思路**：
+- 保底机制确保论文中关键的图表/表格至少 1 张进入 LLM 上下文
+- 剩余槽位由文本 + 额外图表 + 额外表格经 Reranker 跨模态公平竞争
+- 若某类型无结果，配额自动让给其他类型，零侵蚀正常场景
+- 相比旧版 `[:CANDIDATE_M]` 硬截断（图表表格永远被挤占），按类型配额 + 统一打分兼顾了多模态覆盖和质量择优
 
 ### 3.7 论文数据管线
 
@@ -212,8 +227,10 @@ BGE-Reranker-Large (Cross-Encoder) → 精排 → top-M 最终上下文
 
 | 参数 | 值 | 说明 |
 |------|-----|------|
-| `retrieval_k` | 3 | 混合检索返回数量 |
-| `candidate_m` | 2 | 重排序后最终上下文数量 |
+| `retrieval_k` | 6 | 混合检索返回数量（优化后，原 3） |
+| `candidate_m` | 5 | 重排序后最终上下文数量（优化后，原 2） |
+| `parent_chunk_size` | 1,800 | 父块大小（优化后，原 1,200） |
+| `child_chunk_size` | 400 | 子块大小（优化后，原 300） |
 | `nprobe` | 10 | IVF 索引搜索的聚类数 |
 | Dense weight | 0.7 | 稠密检索在混合检索中的权重 |
 | Sparse weight | 1.0 | 稀疏检索在混合检索中的权重 |
@@ -284,6 +301,16 @@ BGE-Reranker-Large (Cross-Encoder) → 精排 → top-M 最终上下文
 |------|------|------|
 | 前端始终显示"参考来源 1 篇" | `paper_id` 未写入 Milvus + `_doc_form_hit()` 未提取 | `document_processor.py` 从文件名提取 arXiv ID → `add_documents()` 写入 → `output_fields` 包含 → `_doc_form_hit()` 携带 |
 
+### v2.3 — 检索参数优化 + 三路合并重构
+
+| 迭代点 | 详情 |
+|--------|------|
+| **参数优化** | `candidate_m` 2→5, `retrieval_k` 3→6, `parent_chunk_size` 1200→1800, `child_chunk_size` 300→400 |
+| **子块碎片化改善** | 更大子块 (400) 减少同父块扎堆，总数从 1,404 降至 1,033 (↓26%) |
+| **LLM 上下文扩充** | 最终上下文从 ~2,400 字增至 ~9,000 字 |
+| **三路合并重构（方案C）** | 图表 top-1 + 表格 top-1 保底入围 → 剩余槽位统一 Cross-Encoder 重排竞争 |
+| **效果** | 图表/表格从"永远被挤占"变为"100% 至少 1 张入围"，跨模态公平打分 |
+
 ---
 
 ## 六、关键设计决策与权衡
@@ -299,6 +326,7 @@ BGE-Reranker-Large (Cross-Encoder) → 精排 → top-M 最终上下文
 | DeepSeek vs GPT | DeepSeek API | 性价比高、中文能力强、128K 上下文 |
 | WebSocket vs SSE | WebSocket | 双向通信、逐 token 流式推送、打字机效果 |
 | Docker vs 纯 Conda | Docker | 环境一致性、一键部署、GPU 直通支持 |
+| 三路合并策略 | 配额保底 + 统一重排 | 保证多模态覆盖（图表/表格不丢失）+ Reranker 跨模态公平择优 |
 
 ---
 
@@ -312,6 +340,8 @@ BGE-Reranker-Large (Cross-Encoder) → 精排 → top-M 最终上下文
 6. **评估体系**：RAGAS 指标 (faithfulness/answer_relevancy/context_precision/context_recall) 的自动化 pipeline
 7. **对话记忆**：当前保留最近 5 轮 → 可升级为摘要记忆 / 向量记忆
 8. **Agent 化**：当前是单轮 RAG → 可扩展为 ReAct Agent（论文检索 + 公式推导 + 实验复现工具链）
+9. **多模态合并策略演进**：固定配额 → 统一重排 → 配额+重排混合 → 查询自适应分配（根据 query 类型动态调整图文表比例）
+10. **分块参数调优方法论**：如何通过 RAGAS 评估 + A/B 测试确定最优 parent/child chunk size？
 
 ---
 
@@ -340,4 +370,4 @@ docker compose up -d
 
 ---
 
-*文档生成时间: 2026-08-09 | 项目分支: main | commit: 4a99c29*
+*文档生成时间: 2026-08-09 | 项目分支: main | 最新 commit: 23b3b15*
