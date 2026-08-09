@@ -132,37 +132,69 @@ class RAGSystem:
             )
         logger.info(f'策略{strategy}检索到{len(ranked_sub_chunks)}个候选文档')
 
-        # 三路检索合并：文本 + 图表 + 表格
+        # 三路检索合并：配额保底 + 统一重排（方案C）
+        #   - 图表 top-1、表格 top-1 保底入围
+        #   - 剩余槽位由文本 + 额外图表 + 额外表格 统一重排竞争
+        #   - 若无图表/表格结果，配额让给文本
+        figure_docs = []
         try:
-            figure_results = self.vector_store.search_figures(query, k=2)
-            if figure_results:
-                for fig in figure_results:
-                    fig_content = f"[图表] {fig.get('caption', '')}\n{fig.get('description', '')}"
-                    ranked_sub_chunks.append(Document(
-                        page_content=fig_content,
-                        metadata={"type": "figure", "paper_id": fig.get("paper_id", ""),
-                                   "image_path": fig.get("image_path", "")}
-                    ))
-                logger.info(f'图表检索补充 {len(figure_results)} 个结果')
+            figure_results = self.vector_store.search_figures(query, k=3)
+            for fig in (figure_results or []):
+                fig_content = f"[图表] {fig.get('caption', '')}\n{fig.get('description', '')}"
+                figure_docs.append(Document(
+                    page_content=fig_content,
+                    metadata={"type": "figure", "paper_id": fig.get("paper_id", ""),
+                               "image_path": fig.get("image_path", "")}
+                ))
+            if figure_docs:
+                logger.info(f'图表检索补充 {len(figure_docs)} 个结果')
         except Exception as e:
             logger.warning(f"图表检索跳过: {e}")
 
+        table_docs = []
         try:
-            table_results = self.vector_store.search_tables(query, k=2)
-            if table_results:
-                for tbl in table_results:
-                    tbl_content = f"[表格] (page {tbl.get('page_num', '?')})\n{tbl.get('markdown', '')}"
-                    ranked_sub_chunks.append(Document(
-                        page_content=tbl_content,
-                        metadata={"type": "table", "paper_id": tbl.get("paper_id", "")}
-                    ))
-                logger.info(f'表格检索补充 {len(table_results)} 个结果')
+            table_results = self.vector_store.search_tables(query, k=3)
+            for tbl in (table_results or []):
+                tbl_content = f"[表格] (page {tbl.get('page_num', '?')})\n{tbl.get('markdown', '')}"
+                table_docs.append(Document(
+                    page_content=tbl_content,
+                    metadata={"type": "table", "paper_id": tbl.get("paper_id", "")}
+                ))
+            if table_docs:
+                logger.info(f'表格检索补充 {len(table_docs)} 个结果')
         except Exception as e:
             logger.warning(f"表格检索跳过: {e}")
 
-        final_content_docs=ranked_sub_chunks[:conf.CANDIDATE_M]
-        logger.info(f'最终上下文文档数量: {len(final_content_docs)}')
-        return final_content_docs
+        # 配额保底：图表 top-1 + 表格 top-1 直接入围
+        guaranteed = []
+        pool = list(ranked_sub_chunks)  # 文本结果（已过 Reranker）进竞争池
+
+        if figure_docs:
+            guaranteed.append(figure_docs[0])
+            pool.extend(figure_docs[1:])  # 剩余图表进池竞争
+        if table_docs:
+            guaranteed.append(table_docs[0])
+            pool.extend(table_docs[1:])   # 剩余表格进池竞争
+
+        # 剩余槽位：统一重排（文本 + 额外图表 + 额外表格 公平竞争）
+        remaining = conf.CANDIDATE_M - len(guaranteed)
+        if remaining > 0 and pool:
+            pairs = [[query, doc.page_content] for doc in pool]
+            scores = self.vector_store.reranker.predict(pairs)
+            ranked_pool = [doc for _, doc in sorted(
+                zip(scores, pool), key=lambda x: x[0], reverse=True
+            )]
+            final_content_docs = guaranteed + ranked_pool[:remaining]
+        else:
+            final_content_docs = guaranteed
+
+        type_summary = {d.metadata.get('type', 'text') for d in final_content_docs}
+        logger.info(
+            f'最终上下文: {len(final_content_docs)} 个文档, '
+            f'类型分布 {type_summary} '
+            f'(保底 {len(guaranteed)} + 重排 {min(remaining, len(pool))})'
+        )
+        return final_content_docs[:conf.CANDIDATE_M]
 
     def generate_answer(self,query,source_filter=None,history=None):
         start_time = time.time()
