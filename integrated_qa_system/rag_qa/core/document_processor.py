@@ -9,17 +9,6 @@ from rag_qa.document_loaders import OCRIMGLoader
 # 论文 PDF 使用轻量加载器（无需 OCR），扫描件回退到 OCRPDFLoader
 from rag_qa.paper_data.paper_pdf_loader import PaperPDFLoader
 
-# 以下 loader 依赖 python-docx / python-pptx，仅在可用时导入
-try:
-    from rag_qa.document_loaders.doc_loader import OCRDOCLoader
-except ImportError:
-    OCRDOCLoader = None
-
-try:
-    from rag_qa.document_loaders.ppt_loader import OCRPPTLoader
-except ImportError:
-    OCRPPTLoader = None
-
 from base.config import Config
 from base.logger import logger
 # import nltk
@@ -40,12 +29,7 @@ document_loaders = {
     ".md": UnstructuredMarkdownLoader
 }
 
-# 仅在 loader 可用时注册
-if OCRDOCLoader is not None:
-    document_loaders[".docx"] = OCRDOCLoader
-if OCRPPTLoader is not None:
-    document_loaders[".ppt"] = OCRPPTLoader
-    document_loaders[".pptx"] = OCRPPTLoader
+# 注: .docx / .ppt / .pptx 加载器已移除（论文场景不需要），如需恢复请重新实现
 
 def load_documents_from_directory(directory_path):
     """

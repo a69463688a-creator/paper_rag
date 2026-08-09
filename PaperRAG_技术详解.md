@@ -249,12 +249,14 @@ BGE-Reranker-Large (Cross-Encoder) → 精排 → top-M 最终上下文
 
 | 机制 | 参数 |
 |------|------|
-| 重试策略 | 指数退避 + 随机抖动 |
+| 重试策略 | 指数退避 + 随机抖动 (`base/retry.py` → `@retry_with_backoff` 装饰器) |
 | 最大重试次数 | 3 |
 | 退避算法 | `min(1s × 2^attempt + random(0,1), 30s)` |
 | 超时 | 30s (stream=True) |
 | Fallback | 所有重试耗尽后返回友好错误提示 |
 | 模型 | `deepseek-v4-pro` (API: `api.deepseek.com`) |
+
+> **v2.4 优化**：`call_dashscope()` 原有手写重试逻辑替换为 `base/retry.py` 的 `@retry_with_backoff` 装饰器。连接建立阶段错误自动重试（最多 3 次），流式传输中的错误不重试（避免 token 浪费和重复输出）。 |
 
 ---
 
@@ -357,6 +359,18 @@ BGE-Reranker-Large (Cross-Encoder) → 精排 → top-M 最终上下文
 | **三路合并重构（方案C）** | 图表 top-1 + 表格 top-1 保底入围 → 剩余槽位统一 Cross-Encoder 重排竞争 |
 | **效果** | 图表/表格从"永远被挤占"变为"100% 至少 1 张入围"，跨模态公平打分 |
 | **jpkb 论文 FAQ 改造** | 从 19 篇论文中提炼 26 条高频问答（nlp/cv/ai 三领域），写入 jpkb 表，BM25 + Redis 缓存链路重新激活 |
+
+### v2.4 — 废弃模块清理 + 重试逻辑集成
+
+| 迭代点 | 详情 |
+|--------|------|
+| **删除旧入口点** | 移除 `old_main.py`（v1.0 入口）、`rag_qa/main.py`（独立 CLI） |
+| **删除旧 RAG 系统** | 移除 `rag_qa/core/rag_system.py`（v1.0 旧版，已被 `new_rag_system.py` 替代） |
+| **删除旧加载器** | 移除 `pdf_loader.py`（OCR 加载器）、`doc_loader.py`（DOCX）、`ppt_loader.py`（PPT）—— 论文场景不需要 |
+| **保留 OCR 模块** | `ocr.py` 保留，仍被 `img_loader.py` 使用（图片型问答场景） |
+| **清理引用** | 更新 `document_processor.py` 移除条件导入、`document_loaders/__init__.py` 精简为仅 `img_loader` |
+| **重试逻辑集成** | `new_main.py` 中的 `call_dashscope()` 从手写重试逻辑改为使用 `base/retry.py` 的 `@retry_with_backoff` 装饰器 |
+| **效果** | 项目更轻量，去除非论文场景的冗余模块，重试逻辑集中管理便于维护 |
 
 ---
 

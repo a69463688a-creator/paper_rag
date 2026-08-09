@@ -7,6 +7,7 @@ from rag_qa.core.vector_store import VectorStore
 
 from base.config import Config
 from base.logger import logger
+from base.retry import retry_with_backoff
 
 from openai import OpenAI
 
@@ -121,47 +122,31 @@ class IntegratedQASystem:
         """
         调用 LLM 流式生成，带指数退避重试
 
-        对瞬时性错误（网络超时、服务端 5xx 等）自动重试最多 3 次，
-        重试间隔采用指数退避 + 随机抖动策略。
+        连接建立阶段使用 retry_with_backoff 自动重试；
+        流式传输阶段的错误不重试（避免重复生成）。
         """
-        import time as time_module
-        import random
 
-        max_retries = 3
-        base_delay = 1.0
-        last_error = None
+        @retry_with_backoff(max_retries=3, base_delay=1.0)
+        def _create_completion():
+            """创建流式请求，仅连接建立阶段出错时重试"""
+            return self.client.chat.completions.create(
+                model=self.config.LLM_MODEL,
+                messages=[
+                    {"role": "system", "content": "你是一个靠谱的助手，根据信息好好回答问题。"},
+                    {"role": "user", "content": prompt},
+                ],
+                timeout=30,
+                stream=True
+            )
 
-        for attempt in range(max_retries + 1):
-            try:
-                completion = self.client.chat.completions.create(
-                    model=self.config.LLM_MODEL,
-                    messages=[
-                        {"role": "system", "content": "你是一个靠谱的助手，根据信息好好回答问题。"},
-                        {"role": "user", "content": prompt},
-                    ],
-                    timeout=30,
-                    stream=True
-                )
-                # 流式输出 token
-                for chunk in completion:
-                    if chunk.choices and chunk.choices[0].delta.content:
-                        content = chunk.choices[0].delta.content
-                        yield content
-                return  # 成功完成，退出
-            except Exception as e:
-                last_error = e
-                if attempt < max_retries:
-                    delay = min(base_delay * (2 ** attempt) + random.uniform(0, 1), 30.0)
-                    self.logger.warning(
-                        f"[LLM 重试 {attempt + 1}/{max_retries}] 调用失败: {e}，"
-                        f"{delay:.1f}s 后重试"
-                    )
-                    time_module.sleep(delay)
-                else:
-                    self.logger.error(f"[LLM 重试耗尽] 已重试 {max_retries} 次，最终错误: {e}")
-
-        # 所有重试都失败
-        yield f"抱歉，LLM 服务暂时不可用，请稍后重试。（错误: {str(last_error)[:100]}）"
+        try:
+            completion = _create_completion()
+            for chunk in completion:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+        except Exception as e:
+            self.logger.error(f"LLM 调用失败（含重试后）: {e}")
+            yield f"抱歉，LLM 服务暂时不可用，请稍后重试。（错误: {str(e)[:100]}）"
         
     
 
