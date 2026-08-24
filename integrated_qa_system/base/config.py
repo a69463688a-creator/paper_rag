@@ -43,6 +43,8 @@ class Config:
         self.MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD', self.config.get('mysql', 'password', fallback='123456'))
         # MySQL 数据库名
         self.MYSQL_DATABASE = os.getenv('MYSQL_DATABASE', self.config.get('mysql', 'database', fallback='paper_rag'))
+        # MySQL 端口（docker 部署映射到 3307，本地默认 3306）
+        self.MYSQL_PORT = int(os.getenv('MYSQL_PORT', self.config.get('mysql', 'port', fallback=3306)))
 
         # Redis 配置
         # Redis 主机地址
@@ -53,6 +55,10 @@ class Config:
         self.REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', self.config.get('redis', 'password', fallback='1234'))
         # Redis 数据库编号
         self.REDIS_DB = int(os.getenv('REDIS_DB', self.config.get('redis', 'db', fallback=0)))
+        # Redis 缓存过期时间（秒），FAQ 答案缓存超时自动失效
+        self.REDIS_CACHE_TTL = int(os.getenv('REDIS_CACHE_TTL', self.config.get('redis', 'cache_ttl', fallback=3600)))
+        # BM25 语料缓存过期时间（秒），过期后自动回源 MySQL 重建索引
+        self.BM25_CORPUS_TTL = int(os.getenv('BM25_CORPUS_TTL', self.config.get('redis', 'corpus_ttl', fallback=300)))
 
         # Milvus 配置
         # Milvus 主机地址

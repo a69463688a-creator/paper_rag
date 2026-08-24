@@ -17,6 +17,7 @@ host = localhost
 port = 6379
 password = 请替换为你的Redis密码
 db = 0
+cache_ttl = 3600
 
 # 日志配置
 [logger]

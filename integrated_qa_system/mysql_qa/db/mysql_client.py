@@ -15,6 +15,7 @@ class MySQLClient:
         self.logger=logger
         self._config = {
             'host': Config().MYSQL_HOST,
+            'port': Config().MYSQL_PORT,
             'user': Config().MYSQL_USER,
             'password': Config().MYSQL_PASSWORD,
             'database': Config().MYSQL_DATABASE,
@@ -72,6 +73,12 @@ class MySQLClient:
                 self.cursor.execute(insert_query,(row['subject_name'],row['question'],row['answer']))
             self.connection.commit()
             self.logger.info(f'MySQL table data successfully inserted')
+
+            # 写完清缓存，避免在线服务读到旧语料/旧答案
+            from mysql_qa.cache.redis_client import RedisClient
+            _redis = RedisClient()
+            _redis.flush_qa_corpus()
+            _redis.invalidate_all_answers()
 
         except Exception as e:
             self.logger.error(f'MySQL insert data error: {e}')

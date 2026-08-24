@@ -17,14 +17,6 @@ from rag_qa.core.strategy_selector import StrategySelector
 from rag_qa.core.vector_store import VectorStore
 
 
-from transformers import BertTokenizer,BertModel
-# BERT 模型路径：从当前文件位置推算，兼容 Windows / Linux / Docker
-_rag_qa_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-local_model_path = os.path.join(_rag_qa_dir, 'models', 'bert-base-chinese')
-tokenizer = BertTokenizer.from_pretrained(local_model_path)
-model = BertModel.from_pretrained(local_model_path)
-from openai import OpenAI
-
 conf=Config()
 
 class RAGSystem:
@@ -43,12 +35,22 @@ class RAGSystem:
         classifier_path=os.path.join(rag_qa_path,'models','bert_query_classifier')
         self.query_classifier=QueryClassifier(classifier_path)
         self.strategy_selector=StrategySelector()
+        # 基准/评测用：最近一次检索的真实上下文 + 分阶段耗时(秒)
+        self.last_contexts = []
+        self.last_stage_times = {}
+
+    def _llm_text(self, prompt):
+        """将流式 LLM 输出收集为完整字符串（检索策略需要非流式结果）"""
+        parts = []
+        for token in self.llm(prompt):
+            parts.append(token)
+        return "".join(parts)
 
     def _retrieve_with_hyde(self, query,source_filter=None):
         logger.info(f"使用 HyDE 策略进行检索 (查询: '{query}')")
         hyde_prompt_template = RAGPrompts.hyde_prompt()
         try:
-            hypo_answer = self.llm(hyde_prompt_template.format(query=query)).strip()
+            hypo_answer = self._llm_text(hyde_prompt_template.format(query=query)).strip()
             logger.info(f"HyDE 生成的假设答案: '{hypo_answer}'")
 
             return self.vector_store.hybrid_search_with_rerank(
@@ -62,7 +64,7 @@ class RAGSystem:
         logger.info(f"使用子查询策略进行检索 (查询: '{query}')")
         subquery_prompt_template = RAGPrompts.subquery_prompt()
         try:
-            subqueries_text = self.llm(subquery_prompt_template.format(query=query)).strip()
+            subqueries_text = self._llm_text(subquery_prompt_template.format(query=query)).strip()
             subqueries = [q.strip() for q in subqueries_text.split("\n") if q.strip()]
             logger.info(f"生成的子查询: {subqueries}")
             if not subqueries:
@@ -96,7 +98,7 @@ class RAGSystem:
         backtrack_prompt_template = RAGPrompts.backtracking_prompt()
         try:
             #   调用大语言模型生成回溯问题
-            simplified_query = self.llm(backtrack_prompt_template.format(query=query)).strip()
+            simplified_query = self._llm_text(backtrack_prompt_template.format(query=query)).strip()
             logger.info(f"生成的回溯问题: '{simplified_query}'")
             #   使用回溯问题进行检索，并返回检索结果
             return self.vector_store.hybrid_search_with_rerank(
@@ -198,6 +200,7 @@ class RAGSystem:
 
     def generate_answer(self,query,source_filter=None,history=None):
         start_time = time.time()
+        self.last_contexts = []  # 每次查询重置，避免通用问答残留上一条的上下文
         logger.info(f"开始处理查询: '{query}', 领域过滤: {source_filter}")
 
         if history is not None and not isinstance(history, list):
@@ -218,14 +221,19 @@ class RAGSystem:
             )
             logger.info(f"使用对话历史: {history_context[:100]}...")
 
+        _t0 = time.perf_counter()
         query_category = self.query_classifier.predict_category(query)
+        self.last_stage_times["bert_classify"] = time.perf_counter() - _t0
 
         # 关键词规则兜底：包含论文相关关键词的问题强制按学术咨询处理
         paper_keywords = [
             "论文", "文献", "arxiv", "模型架构", "自注意力", "预训练",
             "Figure", "Table", "图表", "公式", "实验", "对比", "综述",
-            "Transformer", "BERT", "GPT", "ResNet", "ViT", "LSTM", "CNN",
-            "消融", "参数量", "贡献", "架构图", "encoder", "decoder",
+            "Transformer", "BERT", "GPT", "ResNet", "ViT", "LSTM", "CNN", "RNN",
+            "GAN", "WGAN", "DCGAN", "CycleGAN", "Adam", "YOLO", "DQN", "VGG",
+            "Faster R-CNN", "R-CNN", "RCNN", "EfficientNet", "DDPM", "Diffusion",
+            "扩散模型", "生成对抗", "强化学习", "目标检测", "对比学习", "知识蒸馏",
+            "消融", "参数量", "贡献", "架构图", "encoder", "decoder", "attention",
         ]
         if query_category == "通用问答" and any(kw.lower() in query.lower() for kw in paper_keywords):
             query_category = "论文学术咨询"
@@ -250,13 +258,18 @@ class RAGSystem:
             return answer
 
         logger.info("查询为论文学术咨询，执行 RAG 流程")
+        _t0 = time.perf_counter()
         strategy = self.strategy_selector.select_strategy(query)
+        self.last_stage_times["strategy_select"] = time.perf_counter() - _t0
 
+        _t0 = time.perf_counter()
         context_docs = self.retrieve_and_merge(
             query, source_filter=source_filter, strategy=strategy
         )
+        self.last_stage_times["retrieve_rerank"] = time.perf_counter() - _t0
 
         if context_docs:
+            self.last_contexts = [doc.page_content for doc in context_docs]
             context = "\n\n".join([doc.page_content for doc in context_docs])
             # 提取来源元数据供前端引用展示
             self.last_sources = []
@@ -274,6 +287,7 @@ class RAGSystem:
             logger.info(f"构建上下文完成，包含 {len(context_docs)} 个文档块，来源 {len(self.last_sources)} 篇")
         else:
             context = ""
+            self.last_contexts = []
             self.last_sources = []
             logger.info("未检索到相关文档，上下文为空")
 
