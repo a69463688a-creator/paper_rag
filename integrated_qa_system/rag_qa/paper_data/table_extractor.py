@@ -198,8 +198,13 @@ class TableExtractor:
 
     @staticmethod
     def _paper_id_from_path(pdf_path: str) -> str:
-        """从 PDF 文件路径提取论文 ID"""
-        basename = os.path.basename(pdf_path)
+        """从 PDF 文件路径提取论文 ID
+
+        兼容 Windows（``\\``）与 Linux（``/``）两种路径分隔符：
+        Windows 上传的 PDF 路径带反斜杠，若直接用 os.path.basename 在 Linux
+        上无法识别 ``\\``，会把整条路径当成文件名。
+        """
+        basename = os.path.basename(pdf_path.replace("\\", "/"))
         return os.path.splitext(basename)[0]
 
 
