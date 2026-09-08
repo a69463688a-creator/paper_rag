@@ -16,10 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 安装 Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip   # 缓存依赖，加速后续构建
@@ -48,7 +48,7 @@ jobs:
     needs: test   # 依赖 test 通过才执行
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 构建 Docker 镜像
         run: docker build -t paperrag:${{ github.sha }} .
