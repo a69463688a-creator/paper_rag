@@ -16,6 +16,10 @@ class TestQueryClassifier:
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "rag_qa", "models", "bert_query_classifier"
         )
+        # 模型文件未提交到 git（.gitignore 忽略），CI 环境无模型则跳过；
+        # 本地有模型时正常跑这 8 个分类器测试
+        if not os.path.exists(model_path):
+            pytest.skip("BERT 分类器模型未提交到 git，CI 环境跳过")
         self.classifier = QueryClassifier(model_path=model_path)
 
     def test_paper_query_transformer(self):

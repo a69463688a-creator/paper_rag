@@ -24,15 +24,16 @@ jobs:
           python-version: "3.11"
           cache: pip   # 缓存依赖，加速后续构建
 
-      # requirements.txt 是 UTF-16 编码，pip 读不了，必须先转 UTF-8
-      - name: 转码 requirements.txt（UTF-16 → UTF-8）
-        run: |
-          python -c "open('requirements_utf8.txt','w',encoding='utf-8').write(open('integrated_qa_system/requirements.txt',encoding='utf-16').read())"
-
+      # 依赖安装：复用 Dockerfile 同款精简依赖文件 requirements-docker.txt
+      # （不用根目录 requirements.txt —— 它是 UTF-16 编码的 pip freeze 全量快照，
+      #   含 CUDA 版 torch 等重依赖，CI 装不动且易超时）
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements_utf8.txt
+          pip install pytest
+          # CPU 版 torch（单测够用，比 CUDA 版小约 10 倍、装得快）
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r integrated_qa_system/requirements-docker.txt
 
       - name: 运行单元测试
         run: |
