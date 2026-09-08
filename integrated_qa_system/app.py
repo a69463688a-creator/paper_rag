@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, HTTPException, Query, Depends
+from fastapi import FastAPI, WebSocket, HTTPException, Query, Depends, UploadFile, File
 from fastapi.responses import StreamingResponse, FileResponse
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -270,6 +270,67 @@ async def health_check():
 @app.get("/api/sources")
 async def get_sources():
     return {"sources": qa_system.config.VALID_SOURCES}
+
+
+# ============ 论文上传 / 增量索引（Celery 异步）============
+
+@app.post("/api/upload_paper")
+async def upload_paper(file: UploadFile = File(...)):
+    """
+    上传论文 PDF → 保存到数据目录 → 投递 Celery 异步索引（秒回）
+
+    返回 task_id，前端轮询 /api/paper_status/{task_id} 查进度。
+    Celery/Redis 不可用时优雅降级为同步索引，保证功能可用。
+    """
+    # 1. 校验文件类型
+    if not file.filename or not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="仅支持 PDF 文件")
+
+    # 2. 安全文件名（防路径穿越）+ 保存到论文数据目录
+    safe_name = os.path.basename(file.filename)
+    data_dir = os.path.join(qa_system.config.DATA_DIR, "paper_data")
+    os.makedirs(data_dir, exist_ok=True)
+    save_path = os.path.join(data_dir, safe_name)
+    with open(save_path, "wb") as f:
+        f.write(await file.read())
+
+    paper_id = os.path.splitext(safe_name)[0]
+
+    # 3. 优先异步（Celery），失败则降级同步
+    try:
+        from tasks import index_paper_task
+        task = index_paper_task.delay(save_path)
+        return {"paper_id": paper_id, "mode": "async",
+                "task_id": task.id, "status": "已提交，后台索引中"}
+    except ImportError:
+        pass  # celery 未安装 → 走同步
+    except Exception as e:
+        print(f"[上传] Celery 投递失败，降级同步索引: {e}")
+
+    # 降级：同步索引
+    from rag_qa.core.vector_store import VectorStore
+    from rag_qa.core.index_manager import IndexManager
+    vs = VectorStore()
+    mgr = IndexManager(vs)
+    result = mgr.index_single_paper(save_path)
+    return {"paper_id": paper_id, "mode": "sync", "status": "索引完成", "result": result}
+
+
+@app.get("/api/paper_status/{task_id}")
+async def paper_status(task_id: str):
+    """查询索引任务进度（PENDING / STARTED / SUCCESS / FAILURE）"""
+    try:
+        from celery.result import AsyncResult
+        from celery_app import celery_app
+        result = AsyncResult(task_id, app=celery_app)
+        return {
+            "task_id": task_id,
+            "status": result.status,
+            "ready": result.ready(),
+            "result": result.result if result.ready() else None,
+        }
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Celery 未安装，无法查询任务状态")
 
 
 # 主程序入口

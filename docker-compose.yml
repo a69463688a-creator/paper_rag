@@ -101,6 +101,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: paperrag:latest
     container_name: paperrag-app
     restart: unless-stopped
     ports:
@@ -132,6 +133,53 @@ services:
       milvus:
         condition: service_started
     # GPU 直通（需要 nvidia-container-toolkit）
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # ========== Celery Worker（论文增量索引异步化）==========
+  celery-worker:
+    image: paperrag:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paperrag-celery-worker
+    restart: unless-stopped
+    # 覆盖镜像默认 CMD（python app.py）→ 启动 Celery Worker
+    # --concurrency=1：每个 worker 进程都要加载 BGE-M3 + qwen3-vl + Reranker，
+    #                   内存占用大（>10GB），单并发避免 OOM
+    command: celery -A celery_app worker --loglevel=info --concurrency=1
+    environment:
+      - MYSQL_HOST=mysql
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=123456
+      - MYSQL_DATABASE=paper_rag
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=1234
+      - MILVUS_HOST=milvus
+      - MILVUS_PORT=19530
+      - MILVUS_DATABASE_NAME=paper_rag
+    volumes:
+      # 复用同一套模型 / 论文数据（只读挂载，索引只读 PDF、写 Milvus）
+      - ./integrated_qa_system/rag_qa/models:/app/rag_qa/models:ro
+      - ./integrated_qa_system/rag_qa/data:/app/rag_qa/data:ro
+      - app-logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      milvus:
+        condition: service_started
+    # GPU 直通：索引阶段跑 embedding + 视觉模型，同样需要 GPU
+    # ⚠️ 单 GPU 机器上 app 与 worker 会争抢同一张卡：
+    #    - 生产：给 worker 单独一张 GPU，或
+    #    - 开发：worker 去掉 GPU 用 CPU 跑（慢但能跑），或错峰运行
     deploy:
       resources:
         reservations:

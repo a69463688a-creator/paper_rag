@@ -13,11 +13,13 @@ uvicorn[standard]==0.41.0
 pydantic==2.12.5
 starlette==0.46.2
 python-dotenv==1.2.2
+python-multipart==0.0.20          # FastAPI 文件上传（UploadFile/File 依赖）
 
 # ============ 数据库 / 存储 ============
 pymilvus[model]==2.5.4        # [model] 额外安装 milvus-model（BGEM3EmbeddingFunction）及其 FlagEmbedding 依赖
 PyMySQL==1.1.1
 redis==5.3.1
+celery>=5.4,<6.0               # 异步任务队列（增量索引异步化，broker 复用 Redis）
 
 # ============ Embedding / 检索 / ML ============
 sentence-transformers==3.0.1   # CrossEncoder 重排序

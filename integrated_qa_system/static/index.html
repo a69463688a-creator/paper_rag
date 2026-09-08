@@ -365,6 +365,10 @@
                 <button class="btn primary" id="newSessionBtn">
                     <i class="fas fa-plus"></i> 新会话
                 </button>
+                <button class="btn" id="uploadPaperBtn">
+                    <i class="fas fa-upload"></i> 上传论文
+                </button>
+                <input type="file" id="fileInput" accept=".pdf" style="display:none">
                 <button class="btn" id="clearHistoryBtn">
                     <i class="fas fa-trash-alt"></i> 清除历史
                 </button>
@@ -419,6 +423,8 @@
         const $historyList = document.getElementById('historyList');
         const $sessionInfo = document.getElementById('sessionInfo');
         const $themeToggle = document.getElementById('themeToggle');
+        const $uploadPaperBtn = document.getElementById('uploadPaperBtn');
+        const $fileInput = document.getElementById('fileInput');
         const API_BASE = '';
 
         // Init
@@ -443,6 +449,8 @@
             });
             document.getElementById('newSessionBtn').addEventListener('click', createNewSession);
             document.getElementById('clearHistoryBtn').addEventListener('click', clearHistory);
+            $uploadPaperBtn.addEventListener('click', () => $fileInput.click());
+            $fileInput.addEventListener('change', uploadPaper);
             $themeToggle.addEventListener('click', toggleTheme);
             document.querySelectorAll('.quick-replies .chip').forEach(chip => {
                 chip.addEventListener('click', () => {
@@ -633,6 +641,58 @@
                 socket.onerror = () => { bubble.innerHTML += '<p style="color:red">[连接错误]</p>'; reject(); };
                 socket.onclose = () => resolve();
             });
+        }
+
+        // ============ 论文上传（Celery 异步索引）============
+        async function uploadPaper() {
+            const file = $fileInput.files[0];
+            if (!file) return;
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                alert('仅支持 PDF 文件');
+                $fileInput.value = '';
+                return;
+            }
+
+            addMessage('system', `📄 正在上传论文「${file.name}」...`);
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch(`${API_BASE}/api/upload_paper`, { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.mode === 'sync') {
+                    addMessage('system', `✅ 论文「${file.name}」索引完成：${JSON.stringify(data.result)}`);
+                } else {
+                    addMessage('system', `⏳ 论文「${file.name}」已提交索引，后台处理中...`);
+                    pollPaperStatus(data.task_id, file.name);
+                }
+            } catch (e) {
+                addMessage('system', `上传失败：${e.message}`);
+            } finally {
+                $fileInput.value = '';
+            }
+        }
+
+        // 轮询索引进度（3 秒一次）
+        function pollPaperStatus(taskId, fileName) {
+            const check = async () => {
+                try {
+                    const res = await fetch(`${API_BASE}/api/paper_status/${taskId}`);
+                    const data = await res.json();
+                    if (data.ready) {
+                        if (data.status === 'SUCCESS') {
+                            addMessage('system', `✅ 论文「${fileName}」索引完成：${JSON.stringify(data.result)}`);
+                        } else {
+                            addMessage('system', `❌ 论文「${fileName}」索引失败：${JSON.stringify(data.result)}`);
+                        }
+                        return;
+                    }
+                    setTimeout(check, 3000);
+                } catch (e) {
+                    setTimeout(check, 5000);
+                }
+            };
+            check();
         }
     </script>
 </body>
