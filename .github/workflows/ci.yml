@@ -53,6 +53,26 @@ jobs:
       - name: 构建 Docker 镜像
         run: docker build -t paperrag:${{ github.sha }} .
 
+      # 冒烟测试：把镜像真正 docker run 起来，验证容器能启动 + /health 返回 200。
+      # PAPERRAG_SMOKE_TEST=1 让 app 轻量启动（跳过模型加载与 MySQL/Redis/Milvus 连接），
+      # 因为 CI 里没有模型文件、也没起基础设施——完整初始化会崩。
+      - name: 冒烟测试（验证容器能启动 + 健康检查）
+        run: |
+          docker run -d --name smoke -e PAPERRAG_SMOKE_TEST=1 -p 8080:8080 paperrag:${{ github.sha }}
+          # 轮询 /health，最多等 30 秒（容器启动 + uvicorn 就绪需要几秒）
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:8080/health > /dev/null; then
+              echo "✅ 冒烟测试通过：容器启动并响应 /health"
+              docker rm -f smoke
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "❌ 冒烟测试失败：/health 超时无响应"
+          docker logs smoke || true
+          docker rm -f smoke
+          exit 1
+
       # 生产环境可在此 push 到镜像仓库（Docker Hub / 私有 registry）
       # - name: 推送镜像
       #   run: |

@@ -11,6 +11,7 @@ from base.retry import retry_with_backoff
 
 from openai import OpenAI
 
+import os
 import time
 import pymysql #处理异常捕获curd
 import uuid #生成唯一会话id
@@ -19,6 +20,20 @@ class IntegratedQASystem:
     def __init__(self):
         self.logger = logger
         self.config = Config()
+
+        # 冒烟测试模式：CI 里只验证"容器能启动 + /health 返回 200"，
+        # 不加载 BGE-M3/Reranker 模型、不连 MySQL/Redis/Milvus。
+        # （模型文件被 gitignore、基础设施在 CI 里未启动，完整初始化会崩）
+        if os.getenv("PAPERRAG_SMOKE_TEST", "0") == "1":
+            self.logger.info("[冒烟测试] 轻量启动：跳过基础设施连接与模型加载")
+            self.mysql_client = None
+            self.redis_client = None
+            self.bm25_search = None
+            self.client = None
+            self.vector_store = None
+            self.rag_system = None
+            return
+
         self.mysql_client = MySQLClient()
         self.redis_client = RedisClient()
         self.bm25_search = BM25Search(self.redis_client, self.mysql_client)
